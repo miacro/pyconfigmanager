@@ -88,3 +88,32 @@ class TestConfig(unittest.TestCase):
         self.assertIsInstance(config.sub.b, Item)
         self.assertEqual(config.sub.b.type, "str")
         self.assertEqual(config.sub.b.value, "hello")
+
+    def test_item(self):
+        config = Config({"a": 1, "b": 34})
+        result = {}
+        for name in config:
+            result[name] = getattr(config, name).value
+        self.assertDictEqual(result, {"a": 1, "b": 34})
+
+    def test_getitem(self):
+        config = Config({"a": 12, "b": 34})
+        self.assertEqual(config["a"].value, 12)
+        self.assertEqual(config["b"].value, 34)
+
+    def test_setitem(self):
+        config = Config({"a": 12, "b": 34})
+        config["a"] = 56
+        config["b"] = "100"
+        self.assertEqual(config.a, 56)
+        self.assertEqual(config.b, "100")
+
+    def test_delitem(self):
+        config = Config({"a": 12, "b": 34})
+        self.assertIn("a", config)
+        self.assertIn("b", config)
+        del config["a"]
+        self.assertNotIn("a", config)
+        self.assertIn("b", config)
+        del config["b"]
+        self.assertNotIn("b", config)

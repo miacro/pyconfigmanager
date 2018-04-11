@@ -24,3 +24,22 @@ class Config():
             if (("type" not in schema) or (schema["type"] is None)):
                 schema["type"] = typename(type(schema["value"]))
         return Item(**schema)
+
+    def __iter__(self):
+        for name in self.__dict__:
+            yield name
+
+    def __getitem__(self, name):
+        return getattr(self, name)
+
+    def __setitem__(self, name, value):
+        return setattr(self, name, value)
+
+    def __delitem__(self, name):
+        return delattr(self, name)
+
+    def __getattribute__(self, name):
+        return super().__getattribute__(name)
+
+    def __setattr__(self, name, value):
+        return super().__setattr__(name, value)
