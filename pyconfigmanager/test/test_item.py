@@ -55,6 +55,7 @@ class TestItem(unittest.TestCase):
         self.assertTrue(hasattr(item, "min"))
         self.assertTrue(hasattr(item, "max"))
         self.assertTrue(hasattr(item, "argparse"))
+        self.assertRaises(TypeError, Item, None)
 
     def test_setattr(self):
         item = Item()
@@ -79,14 +80,19 @@ class TestItem(unittest.TestCase):
         self.assertEqual(item.max, 0)
         item.min = 12.4
         self.assertEqual(item.min, 12)
-        self.assertRaises(ValueError, item.__setattr__, "value", "hello")
+        item.value = "hello"
+        self.assertEqual(item.value, None)
         item.type = "str"
         item.value = None
-        self.assertEqual(item.value, "None")
+        self.assertEqual(item.value, None)
 
         item.type = None
         item.value = "hello"
         self.assertEqual(item.value, "hello")
+
+        item.type = "float"
+        item.value = "123.5"
+        self.assertEqual(item.value, 123.5)
 
     def test_update_values(self):
         item = Item()
@@ -108,7 +114,7 @@ class TestItem(unittest.TestCase):
             }
         })
         self.assertEqual(item.type, "int")
-        self.assertEqual(item.value, "hello")
+        self.assertEqual(item.value, None)
         self.assertIsInstance(item.argparse, ArgparseItem)
         self.assertEqual(item.argparse.default, 123)
         self.assertEqual(item.argparse.nargs, "*")

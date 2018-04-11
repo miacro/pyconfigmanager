@@ -14,3 +14,4 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(locate_type("builtins.bool"), bool)
         self.assertEqual(
             locate_type("unittest.case.TestCase"), unittest.TestCase)
+        self.assertEqual(locate_type("module"), type(unittest))

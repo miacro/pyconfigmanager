@@ -1,4 +1,4 @@
-from .utils import typename, locate_type
+from .utils import typename, locate_type, convert_type
 
 
 class BasicItem():
@@ -50,12 +50,17 @@ class Item(BasicItem):
                 value = typename(value)
             else:
                 value = str(value)
+            if self.value is not None:
+                super().__setattr__("value", convert_type(self.value, value))
+            if self.max is not None:
+                super().__setattr__("max", convert_type(self.max, value))
+            if self.min is not None:
+                super().__setattr__("min", convert_type(self.min, value))
 
-        if hasattr(self, "type") and self.type is not None:
-            value_type = locate_type(self.type)
-            if name == "value" or name == "min" or name == "max":
-                if not isinstance(value, value_type):
-                    value = value_type(value)
+        if name == "max" or name == "min" or name == "value":
+            if self.type is not None and value is not None:
+                value = convert_type(value, self.type)
+
         return super().__setattr__(name, value)
 
     def get_argparse_options(self):

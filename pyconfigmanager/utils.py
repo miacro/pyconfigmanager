@@ -1,4 +1,5 @@
 from pydoc import locate
+import logging
 
 
 def get_item_by_catrgory(item, category="", exclude_categories=["metadata"]):
@@ -22,7 +23,25 @@ def typename(type_instance):
 
 
 def locate_type(name):
+    if name == "module":
+        name = "types.ModuleType"
     type = locate(name)
     if type is None:
         raise NameError("type '{}' can not be located".format(name))
     return type
+
+
+def convert_type(value, value_type):
+    if not isinstance(value_type, type):
+        value_type = locate_type(value_type)
+    if isinstance(value, value_type):
+        return value
+    try:
+        value = value_type(value)
+    except ValueError as error:
+        logging.warning(
+            "convert '{}' to type '{}' failed, set to 'None', ValueError: {}".
+            format(value, value_type.__name__, error))
+        value = None
+    finally:
+        return value
