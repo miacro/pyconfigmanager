@@ -12,7 +12,10 @@ class Config():
 
     def __new__(self, schema={}):
         if isinstance(schema, dict):
-            if any([True if key[:1] == "$" else False for key in schema]):
+            if any([
+                    True if key[:1] == Config.ITEM_INDICATOR else False
+                    for key in schema
+            ]):
                 schema = {(key[1:]
                            if key[:1] == Config.ITEM_INDICATOR else key): value
                           for key, value in schema.items()}
@@ -43,3 +46,30 @@ class Config():
 
     def __setattr__(self, name, value):
         return super().__setattr__(name, value)
+
+    def items(self):
+        result = []
+        for name in self:
+            result.append((name, getattr(self, name)))
+        return result
+
+    def schema(self, name=None):
+        if name is None:
+            names = self.__dict__.keys()
+        elif isinstance(name, list):
+            names = name
+        else:
+            names = [name]
+        result = {}
+        for name in names:
+            attr = super().__getattribute__(name)
+            if isinstance(attr, Item):
+                result[name] = {
+                    "{}{}".format(Config.ITEM_INDICATOR, key): value
+                    for key, value in vars(attr).items()
+                }
+            elif isinstance(attr, Config):
+                result[name] = attr.schema()
+            else:
+                result[name] = None
+        return result

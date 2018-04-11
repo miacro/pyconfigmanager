@@ -117,3 +117,91 @@ class TestConfig(unittest.TestCase):
         self.assertIn("b", config)
         del config["b"]
         self.assertNotIn("b", config)
+
+    def test_items(self):
+        config = Config({"a": 12, "b": 34})
+        items = sorted(config.items())
+        self.assertIsInstance(items, list)
+        self.assertIsInstance(items[0], tuple)
+        self.assertEqual(items[0][0], "a")
+        self.assertIsInstance(items[0][1], Item)
+        self.assertIsInstance(items[1], tuple)
+        self.assertEqual(items[1][0], "b")
+        self.assertIsInstance(items[1][1], Item)
+
+    def test_schema(self):
+        config = Config({
+            "a": 12,
+            "b": 34,
+            "c": [1, 2, 3],
+            "sub": {
+                "d": "hello",
+                "f": 12.5,
+                "g": {
+                    "type": "int"
+                },
+                "h": {
+                    "$type": "int",
+                    "value": 12
+                }
+            }
+        })
+        print(config.schema())
+        compare_result = {
+            "a": {
+                "$type": "int",
+                "$value": 12,
+                "$required": None,
+                "$max": None,
+                "$min": None,
+                "$argparse": None
+            },
+            "b": {
+                "$type": "int",
+                "$value": 34,
+                "$required": None,
+                "$max": None,
+                "$min": None,
+                "$argparse": None
+            },
+            "sub": {
+                "d": {
+                    "$type": "str",
+                    "$value": "hello",
+                    "$required": None,
+                    "$max": None,
+                    "$min": None,
+                    "$argparse": None
+                },
+                "f": {
+                    "$type": "float",
+                    "$value": 12.5,
+                    "$required": None,
+                    "$max": None,
+                    "$min": None,
+                    "$argparse": None
+                },
+                "h": {
+                    "$type": "int",
+                    "$value": 12,
+                    "$required": None,
+                    "$max": None,
+                    "$min": None,
+                    "$argparse": None
+                },
+                "g": {
+                    "type": {
+                        "$type": "str",
+                        "$value": "int",
+                        "$required": None,
+                        "$max": None,
+                        "$min": None,
+                        "$argparse": None
+                    },
+                }
+            },
+        }
+        schema = config.schema()
+        self.assertDictEqual(schema["a"], compare_result["a"])
+        self.assertDictEqual(schema["b"], compare_result["b"])
+        self.assertDictEqual(schema["sub"], compare_result["sub"])
