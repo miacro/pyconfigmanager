@@ -25,6 +25,18 @@ class TestConfig(unittest.TestCase):
         self.assertEqual(config.type, "str")
         self.assertEqual(config.value, "[1, 2, 3]")
 
+        config = Config({"a": 1, "b": 2})
+        config = Config(schema=config)
+        self.assertIsInstance(config, Item)
+        self.assertEqual(config.type, "pyconfigmanager.config.Config")
+        self.assertEqual(config.value.a, 1)
+        self.assertEqual(config.value.b, 2)
+        item = Item(value=56.8)
+        config = Config(item)
+        self.assertIsInstance(config, Item)
+        self.assertEqual(config.type, "float")
+        self.assertEqual(config.value, 56.8)
+
     def test_init(self):
         config = Config({
             "type": "str",
@@ -124,6 +136,39 @@ class TestConfig(unittest.TestCase):
         self.assertIsInstance(config.c.getattr("e", raw=True), Item)
         self.assertEqual(config.c.getattr("e", raw=True).type, "int")
         self.assertEqual(config.c.getattr("e", raw=True).value, 34)
+
+    def test_setattr(self):
+        config = Config({"a": 1, "b": 2, "sub": {"c": "hello", "d": 0.9}})
+        config.setattr("a", 12, raw=False)
+        self.assertEqual(config.a, 12)
+        config.setattr("a", "45", raw=False)
+        self.assertEqual(config.a, 45)
+        config.setattr("a", None, raw=False)
+        self.assertEqual(config.a, None)
+        config.setattr("a", {"a": 1, "b": 2, "$type": "int"}, raw=False)
+        self.assertDictEqual(config.a, {"a": 1, "b": 2, "$type": "int"})
+        config.setattr("a", Item(value=12), raw=False)
+        self.assertIsInstance(config.a, Item)
+        self.assertEqual(config.a.type, None)
+        self.assertEqual(config.a.value, 12)
+        self.assertRaises(
+            AttributeError, config.setattr, "sub", 123, raw=False)
+
+        config.setattr("a", "123", raw=True)
+        self.assertIsInstance(config.getattr("a", raw=True), Item)
+        self.assertEqual(config.a, "123")
+        config.setattr("a", {"a": 12, "b": 34}, raw=True)
+        self.assertIsInstance(config.a, Config)
+        self.assertIsInstance(config.a.getattr("a", raw=True), Item)
+        self.assertEqual(config.a.a, 12)
+        self.assertIsInstance(config.a.getattr("b", raw=True), Item)
+        self.assertEqual(config.a.b, 34)
+        config.setattr("sub", {"a": 12, "b": 34}, raw=True)
+        self.assertIsInstance(config.sub, Config)
+        self.assertIsInstance(config.sub.getattr("a", raw=True), Item)
+        self.assertEqual(config.sub.a, 12)
+        self.assertIsInstance(config.sub.getattr("b", raw=True), Item)
+        self.assertEqual(config.sub.b, 34)
 
     def test_getitem(self):
         config = Config({"a": 12, "b": 34})
@@ -229,14 +274,13 @@ class TestConfig(unittest.TestCase):
                 }
             },
         }
-        # schema = config.schema()
-        # self.assertDictEqual(schema["a"], compare_result["a"])
-        # self.assertDictEqual(schema["b"], compare_result["b"])
-        # self.assertDictEqual(schema["sub"], compare_result["sub"])
-        # print(config.schema("a"))
-        # self.assertDictEqual(config.schema("a"), compare_result["a"])
-        # self.assertDictEqual(
-        #     config.schema(["a", "b"]), {
-        #         "a": compare_result["a"],
-        #         "b": compare_result["b"]
-        #     })
+        schema = config.schema()
+        self.assertDictEqual(schema["a"], compare_result["a"])
+        self.assertDictEqual(schema["b"], compare_result["b"])
+        self.assertDictEqual(schema["sub"], compare_result["sub"])
+        self.assertDictEqual(config.schema("a"), compare_result["a"])
+        self.assertDictEqual(
+            config.schema(["a", "b"]), {
+                "a": compare_result["a"],
+                "b": compare_result["b"]
+            })
