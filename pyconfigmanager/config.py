@@ -33,7 +33,7 @@ class Config():
             yield name
 
     def __getitem__(self, name):
-        return getattr(self, name)
+        return self.getattr(name, raw=False)
 
     def __setitem__(self, name, value):
         return setattr(self, name, value)
@@ -42,34 +42,39 @@ class Config():
         return delattr(self, name)
 
     def __getattribute__(self, name):
-        return super().__getattribute__(name)
+        return super().__getattribute__("getattr")(name, raw=False)
 
     def __setattr__(self, name, value):
         return super().__setattr__(name, value)
 
+    def getattr(self, name, raw=False):
+        attr = super().__getattribute__(name)
+        if (not raw) and isinstance(attr, Item):
+            return attr.value
+        return attr
+
+    def setattr(self, name, value, raw=False):
+        pass
+
     def items(self):
         result = []
         for name in self:
-            result.append((name, getattr(self, name)))
+            result.append((name, self.getattr(name)))
         return result
 
     def schema(self, name=None):
         if name is None:
-            names = self.__dict__.keys()
-        elif isinstance(name, list):
-            names = name
-        else:
-            names = [name]
-        result = {}
-        for name in names:
-            attr = super().__getattribute__(name)
-            if isinstance(attr, Item):
-                result[name] = {
-                    "{}{}".format(Config.ITEM_INDICATOR, key): value
-                    for key, value in vars(attr).items()
-                }
-            elif isinstance(attr, Config):
-                result[name] = attr.schema()
-            else:
-                result[name] = None
-        return result
+            name = self.__dict__.keys()
+        if isinstance(name, list):
+            result = {}
+            for name_item in name:
+                result[name_item] = self.schema(name_item)
+            return result
+        attr = super().__getattribute__(name)
+        if isinstance(attr, Item):
+            return {
+                "{}{}".format(Config.ITEM_INDICATOR, key): value
+                for key, value in vars(attr).items()
+            }
+        elif isinstance(attr, Config):
+            return attr.schema()
