@@ -97,6 +97,10 @@ class Config():
             return attr.schema()
 
     def update_schema(self, schema={}, merge=True):
+        if schema is None:
+            for name in [name for name, _ in self.items()]:
+                del self[name]
+            return
         for name in schema:
             if not merge:
                 self.setattr(name, schema[name], raw=True)

@@ -284,3 +284,28 @@ class TestConfig(unittest.TestCase):
                 "a": compare_result["a"],
                 "b": compare_result["b"]
             })
+
+    def test_update_schema(self):
+        config = Config({"a": 1, "b": 2})
+        self.assertEqual(config.a, 1)
+        self.assertEqual(config.b, 2)
+        self.assertEqual(config.getattr("b", raw=True).type, "int")
+        config.update_schema(
+            {
+                "a": {
+                    "a": 1
+                },
+                "b": {
+                    "$type": str,
+                    "$value": 123
+                }
+            }, merge=False)
+        self.assertIsInstance(config.a, Config)
+        self.assertEqual(config.a.a, 1)
+        self.assertEqual(config.getattr("b", raw=True).type, "str")
+        self.assertEqual(config.b, "123")
+        self.assertEqual(len(config.items()), 2)
+
+
+        config.update_schema(None, merge=False)
+        self.assertEqual(len(config.items()), 0)
