@@ -77,20 +77,25 @@ class Item(BasicItem):
             })
         return options
 
-    def assert_value(self):
-        class_name = type(self).__name__
-        if self.required:
+    def assert_value(self, item=None):
+        if item is None:
+            item = self
+        else:
+            if not isinstance(item, Item):
+                item = Item(**item)
+        class_name = type(item).__name__
+        if item.required:
             assert self.value is not None, (
-                "'{}' object: value required".format(class_name))
-        if self.type is not None:
-            assert isinstance(self.value, locate_type(self.type)), (
-                "'{}' object: value '{}' is not type '{}'".format(
-                    class_name, self.value, self.type))
-        if self.min is not None:
-            assert self.value >= self.min, (
-                "'{}' object: value '{}' required >= {}".format(
-                    class_name, self.value, self.min))
-        if self.max is not None:
-            assert self.value <= self.max, (
-                "'{}' object: value '{}' required <= {}".format(
-                    class_name, self.value, self.max))
+                "'{}' object: attribute 'value' required".format(class_name))
+        if item.type is not None:
+            assert isinstance(self.value, locate_type(item.type)), (
+                "'{}' object: attribute 'value': '{}' is not type '{}'".format(
+                    class_name, self.value, item.type))
+        if item.min is not None:
+            assert self.value >= item.min, (
+                "'{}' object: attribute 'value': '{}' required >= {}".format(
+                    class_name, self.value, item.min))
+        if item.max is not None:
+            assert self.value <= item.max, (
+                "'{}' object: attribute 'value': '{}' required <= {}".format(
+                    class_name, self.value, item.max))

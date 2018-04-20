@@ -111,6 +111,7 @@ class TestConfig(unittest.TestCase):
     def test_getattr(self):
         config = Config({"a": 1, "b": 2, "c": {"d": 12, "e": 34}})
 
+        self.assertRaises(AttributeError, config.getattr, "abcd")
         self.assertEqual(config.a, 1)
         self.assertEqual(config.b, 2)
         self.assertIsInstance(config.c, Config)
@@ -355,3 +356,55 @@ class TestConfig(unittest.TestCase):
         self.assertEqual(config.c.a.d, 1)
         self.assertEqual(config.c.b, 12)
         self.assertEqual(config.c.getattr("b", raw=True).required, True)
+
+    def test_assert_values(self):
+        config = Config({
+            "a": 12,
+            "b": {
+                "$type": int,
+                "value": "123",
+                "max": 12
+            }
+        })
+        self.assertRaises(AssertionError, config.assert_values)
+        config = Config({
+            "a": {
+                "b": {
+                    "c": {
+                        "$value": None,
+                        "required": True
+                    }
+                }
+            }
+        })
+        self.assertRaises(AssertionError, config.assert_values)
+        config.assert_values(schema={"a": True})
+        self.assertRaises(AssertionError, config.assert_values, {
+            "a": True,
+            "b": True
+        })
+        config.assert_values(schema={"a": {"b": True}})
+        self.assertRaises(
+            AssertionError,
+            config.assert_values,
+            schema={
+                "a": {
+                    "b": {
+                        "c": True
+                    }
+                }
+            })
+        config.assert_values(schema={"a": {"b": 12}})
+        config.assert_values(schema={"a": {"b": {"c": "haha"}}})
+        self.assertRaises(
+            AssertionError,
+            config.assert_values,
+            schema={
+                "a": {
+                    "b": {
+                        "c": {
+                            "d": 12
+                        }
+                    }
+                }
+            })

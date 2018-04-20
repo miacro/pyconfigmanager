@@ -180,3 +180,13 @@ class TestItem(unittest.TestCase):
         self.assertRaises(AssertionError, item.assert_value)
         item.value = 13
         self.assertRaises(AssertionError, item.assert_value)
+
+        item.value = 8
+        self.assertRaises(AssertionError, item.assert_value, {"max": 6})
+        other = Item(type=int, max=7, min=7)
+        self.assertRaises(AssertionError, item.assert_value, other)
+
+        item.value = None
+        self.assertRaises(AssertionError, item.assert_value, {
+            "required": True
+        })

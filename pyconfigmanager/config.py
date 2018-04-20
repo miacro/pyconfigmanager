@@ -120,3 +120,34 @@ class Config():
                 attr.update_schema(schema[name], merge=merge)
             else:
                 self.setattr(name, schema[name], raw=True)
+
+    def assert_values(self, schema=None, name=""):
+        if not schema:
+            schema = self.schema()
+
+        for attr_name in schema:
+            if not schema[attr_name]:
+                continue
+            if name:
+                show_name = "{}.{}".format(name, attr_name)
+            else:
+                show_name = attr_name
+            assert hasattr(self, attr_name), (
+                "'Config' object has no attribute '{}'".format(show_name))
+            attr = self.getattr(attr_name, raw=True)
+            if isinstance(schema[attr_name], dict):
+                check_attr = Config.__new__(Config, schema[attr_name])
+                assert isinstance(attr, type(check_attr)), (
+                    "attribute '{}' is not instance of '{}'".format(
+                        show_name, typename((type(check_attr)))))
+            elif schema[attr_name] is True:
+                check_attr = None
+            else:
+                check_attr = {}
+
+            if isinstance(attr, Config):
+                if check_attr:
+                    attr.assert_values(
+                        schema=schema[attr_name], name=show_name)
+            else:
+                attr.assert_value(item=check_attr)
