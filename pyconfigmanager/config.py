@@ -1,5 +1,7 @@
 from .item import Item
 from .utils import typename
+import logging
+from .logging_config import get_logging_level
 
 
 class Config():
@@ -151,3 +153,32 @@ class Config():
                         schema=schema[attr_name], name=show_name)
             else:
                 attr.assert_value(item=check_attr)
+
+    def logging_values(self, schema=None, verbosity="INFO", name=""):
+        if not schema:
+            schema = self.schema()
+        for attr_name in schema:
+            if not schema[attr_name]:
+                continue
+            if name:
+                show_name = "{}.{}".format(name, attr_name)
+            else:
+                show_name = attr_name
+            attr = self.getattr(attr_name, raw=True)
+            if isinstance(attr, Item):
+                logging.log(
+                    get_logging_level(verbosity), "{}: {}".format(
+                        show_name, attr.value))
+            elif isinstance(attr, Config):
+                if isinstance(
+                        Config.__new__(Config, schema[attr_name]), Config):
+                    attr.logging_values(
+                        schema=schema[attr_name],
+                        verbosity=verbosity,
+                        name=show_name)
+                else:
+                    if schema[attr_name] is True:
+                        attr.logging_values(
+                            schema=attr.schema(),
+                            verbosity=verbosity,
+                            name=show_name)
