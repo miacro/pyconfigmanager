@@ -63,7 +63,7 @@ class Config():
                 attr.value = value
             else:
                 raise AttributeError("{} {} {}".format(
-                    "only value of 'Item' attribute can be updated",
+                    "only attribute 'value' of 'Item' can be updated",
                     "when raw=False,", "while attribute: '{}'".format(
                         type(attr).__name__)))
         else:
@@ -98,8 +98,9 @@ class Config():
 
     def update_schema(self, schema={}, merge=True):
         if schema is None:
-            for name in [name for name, _ in self.items()]:
-                del self[name]
+            if not merge:
+                for name in [name for name, _ in self.items()]:
+                    del self[name]
             return
         for name in schema:
             if not merge:
@@ -108,14 +109,14 @@ class Config():
             if schema[name] is None:
                 continue
             attr = self.getattr(name, raw=True)
-            new_attr = Config.__new__(Config, schema[name])
-            if isinstance(attr, Item) and isinstance(new_attr, Item):
-                attr.update_values(attr, vars(new_attr))
-            elif isinstance(attr, Item) and isinstance(new_attr, Config):
+            init_attr = Config.__new__(Config, schema[name])
+            if isinstance(attr, Item) and isinstance(init_attr, Item):
+                attr.update_values(values=vars(init_attr), merge=merge)
+            elif isinstance(attr, Item) and isinstance(init_attr, Config):
                 self.setattr(name, schema[name], raw=True)
-            elif isinstance(attr, Config) and isinstance(new_attr, Item):
+            elif isinstance(attr, Config) and isinstance(init_attr, Item):
                 self.setattr(name, schema[name], raw=True)
-            elif isinstance(attr, Config) and isinstance(new_attr, Config):
+            elif isinstance(attr, Config) and isinstance(init_attr, Config):
                 attr.update_schema(schema[name], merge=merge)
             else:
                 self.setattr(name, schema[name], raw=True)

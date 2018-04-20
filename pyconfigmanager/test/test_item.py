@@ -25,11 +25,20 @@ class TestBasicItem(unittest.TestCase):
 
     def test_update_values(self):
         item = BasicItem(names=["abc", "cde", "fgh"])
-        item.update_values({"abc": 12, "cde": "hello", "fgh": 12.4})
+        item.update_values(
+            {
+                "abc": 12,
+                "cde": "hello",
+                "fgh": 12.4
+            }, merge=False)
         self.assertEqual(item.abc, 12)
         self.assertEqual(item.cde, "hello")
         self.assertEqual(item.fgh, 12.4)
         self.assertRaises(AttributeError, item.update_values, {"aaa": 1})
+
+        item.update_values({"abc": None, "cde": 12}, merge=True)
+        self.assertEqual(item.abc, 12)
+        self.assertEqual(item.cde, 12)
 
 
 class TestArgparseItem(unittest.TestCase):

@@ -13,9 +13,10 @@ class BasicItem():
                 type(self).__name__, name))
         return super().__setattr__(name, value)
 
-    def update_values(self, values):
+    def update_values(self, values, merge=False):
         for name in values:
-            setattr(self, name, values[name])
+            if (not merge) or (values[name] is not None):
+                setattr(self, name, values[name])
 
 
 class ArgparseItem(BasicItem):

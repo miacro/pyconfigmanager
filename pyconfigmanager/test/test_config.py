@@ -306,6 +306,52 @@ class TestConfig(unittest.TestCase):
         self.assertEqual(config.b, "123")
         self.assertEqual(len(config.items()), 2)
 
-
+        config.update_schema(None, merge=True)
+        self.assertEqual(config.a.a, 1)
+        self.assertEqual(len(config.items()), 2)
         config.update_schema(None, merge=False)
         self.assertEqual(len(config.items()), 0)
+
+        config = Config({
+            "a": 1,
+            "b": 2,
+            "c": {
+                "a": 1,
+                "b": {
+                    "$value": "hello",
+                    "required": True,
+                }
+            }
+        })
+        self.assertEqual(config.a, 1)
+        self.assertEqual(config.b, 2)
+        self.assertEqual(config.getattr("b", raw=True).type, "int")
+        self.assertEqual(config.c.getattr("b", raw=True).required, True)
+        self.assertRaises(TypeError, config.update_schema, 12, False)
+        self.assertRaises(TypeError, config.update_schema, 12, True)
+
+        config.update_schema(
+            {
+                "a": {
+                    "$type": "str"
+                },
+                "b": {
+                    "a": 12
+                },
+                "c": {
+                    "a": {
+                        "d": 1
+                    },
+                    "b": 12
+                }
+            },
+            merge=True)
+        self.assertIsInstance(config.getattr("a", raw=True), Item)
+        self.assertEqual(config.a, "1")
+        self.assertIsInstance(config.getattr("b", raw=True), Config)
+        self.assertIsInstance(config.b.getattr("a", raw=True), Item)
+        self.assertEqual(config.b.a, 12)
+        self.assertIsInstance(config.c.a, Config)
+        self.assertEqual(config.c.a.d, 1)
+        self.assertEqual(config.c.b, 12)
+        self.assertEqual(config.c.getattr("b", raw=True).required, True)
