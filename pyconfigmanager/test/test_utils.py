@@ -1,5 +1,5 @@
 import unittest
-from pyconfigmanager.utils import typename, locate_type
+from pyconfigmanager.utils import typename, locate_type, convert_type
 
 
 class TestUtils(unittest.TestCase):
@@ -15,3 +15,9 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(
             locate_type("unittest.case.TestCase"), unittest.TestCase)
         self.assertEqual(locate_type("module"), type(unittest))
+
+    def test_convert_type(self):
+        self.assertEqual(convert_type("12", "int"), 12)
+        self.assertEqual(convert_type("12", int), 12)
+        self.assertEqual(convert_type("hello", int), None)
+        self.assertEqual(convert_type(12.34, list), None)

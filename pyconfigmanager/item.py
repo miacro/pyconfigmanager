@@ -64,7 +64,7 @@ class Item(BasicItem):
 
         return super().__setattr__(name, value)
 
-    def get_argparse_options(self):
+    def argparse_options(self):
         argparseitem = ArgparseItem(
             type=self.type, default=self.value, help=" ")
         options = vars(argparseitem)

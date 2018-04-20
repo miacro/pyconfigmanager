@@ -38,10 +38,10 @@ def convert_type(value, value_type):
         return value
     try:
         value = value_type(value)
-    except ValueError as error:
+    except (ValueError, TypeError) as error:
         logging.warning(
-            "convert '{}' to type '{}' failed, set to 'None', ValueError: {}".
-            format(value, value_type.__name__, error))
+            "convert '{}' to type '{}' failed, set to 'None', {}: {}".format(
+                value, value_type.__name__, error.__class__.__name__, error))
         value = None
     finally:
         return value

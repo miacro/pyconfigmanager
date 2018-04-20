@@ -103,6 +103,10 @@ class TestItem(unittest.TestCase):
         item.value = "123.5"
         self.assertEqual(item.value, 123.5)
 
+        item.type = list
+        item.value = 12.4
+        self.assertEqual(item.value, None)
+
     def test_update_values(self):
         item = Item()
         item.update_values({
@@ -128,7 +132,7 @@ class TestItem(unittest.TestCase):
         self.assertEqual(item.argparse.default, 123)
         self.assertEqual(item.argparse.nargs, "*")
 
-    def test_get_argparse_options(self):
+    def test_argparse_options(self):
         item = Item(
             type="str",
             value="hello",
@@ -152,7 +156,7 @@ class TestItem(unittest.TestCase):
         compare_options["default"] = "hello"
         compare_options["action"] = "append"
         compare_options["help"] = " "
-        self.assertDictEqual(item.get_argparse_options(), compare_options)
+        self.assertDictEqual(item.argparse_options(), compare_options)
 
         item.argparse.type = "int"
         item.argparse.default = 123
@@ -160,7 +164,7 @@ class TestItem(unittest.TestCase):
         compare_options["type"] = "int"
         compare_options["default"] = 123
         compare_options["help"] = "empty"
-        self.assertDictEqual(item.get_argparse_options(), compare_options)
+        self.assertDictEqual(item.argparse_options(), compare_options)
 
     def test_assert_value(self):
         item = Item()

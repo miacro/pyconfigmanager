@@ -1,7 +1,8 @@
 from .item import Item
-from .utils import typename
+from .utils import typename, locate_type
 import logging
 from .logging_config import get_logging_level
+import argparse
 
 
 class Config():
@@ -75,10 +76,10 @@ class Config():
                 attr_value = Config(value)
             return super().__setattr__(name, attr_value)
 
-    def items(self):
+    def items(self, raw=False):
         result = []
         for name in self:
-            result.append((name, self.getattr(name, raw=False)))
+            result.append((name, self.getattr(name, raw=raw)))
         return result
 
     def schema(self, name=None):
@@ -182,3 +183,70 @@ class Config():
                             schema=attr.schema(),
                             verbosity=verbosity,
                             name=show_name)
+
+    def argument_parser(self, parser=None, prefix=""):
+        if not parser:
+            parser = argparse.ArgumentParser(
+                formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+                description="")
+
+        for attr_name, attr in self.items(raw=True):
+            arg_name = attr_name if not prefix else "{}-{}".format(
+                prefix, attr_name)
+            if isinstance(attr, Config):
+                attr.argument_parser(parser=parser, prefix=arg_name)
+            elif isinstance(attr, Item):
+                if attr.argparse is False:
+                    continue
+                options = attr.argparse_options()
+                del options["dest"]
+                options["type"] = locate_type(options["type"])
+                if issubclass(options["type"], list):
+                    if options["nargs"] is None:
+                        options["nargs"] = "*"
+                parser.add_argument(
+                    "--" + arg_name,
+                    dest=arg_name.replace("-", "_"),
+                    **options)
+        return parser
+
+    def update_value_by_argument(self, argname, value, ignore_not_found=True):
+        if isinstance(argname, str):
+            name = argname.split("_")
+        else:
+            name = argname
+        name = list(filter(str, name))
+        if len(name) > 0:
+            level_name = ""
+            index = 0
+            while index < len(name):
+                if level_name:
+                    level_name += "_" + name[index]
+                else:
+                    level_name = name[index]
+                if level_name in self:
+                    break
+                index += 1
+
+            if index < len(name):
+                attr = self.getattr(level_name, raw=True)
+                if isinstance(attr, Item):
+                    if index == len(name) - 1:
+                        self.setattr(level_name, value)
+                        return
+                elif isinstance(attr, Config):
+                    if index < len(name) - 1:
+                        attr.update_value_by_argument(
+                            name[index + 1:],
+                            value,
+                            ignore_not_found=ignore_not_found)
+                        return
+        if not ignore_not_found:
+            raise AttributeError(
+                "attr not found by argname '{}'".format(argname))
+
+    def update_values_by_arguments(self, args, **kwargs):
+        if not isinstance(args, dict):
+            args = vars(args)
+        for arg_name in args:
+            self.update_value_by_argument(arg_name, args[arg_name], **kwargs)

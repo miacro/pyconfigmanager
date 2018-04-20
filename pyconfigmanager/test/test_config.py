@@ -146,6 +146,7 @@ class TestConfig(unittest.TestCase):
         self.assertEqual(config.a, 45)
         config.setattr("a", None, raw=False)
         self.assertEqual(config.a, None)
+        config.getattr("a", raw=True).type = None
         config.setattr("a", {"a": 1, "b": 2, "$type": "int"}, raw=False)
         self.assertDictEqual(config.a, {"a": 1, "b": 2, "$type": "int"})
         config.setattr("a", Item(value=12), raw=False)
@@ -195,7 +196,7 @@ class TestConfig(unittest.TestCase):
 
     def test_items(self):
         config = Config({"a": 12, "b": 34})
-        items = sorted(config.items())
+        items = sorted(config.items(raw=False))
         self.assertIsInstance(items, list)
         self.assertIsInstance(items[0], tuple)
         self.assertEqual(items[0][0], "a")
@@ -203,6 +204,15 @@ class TestConfig(unittest.TestCase):
         self.assertIsInstance(items[1], tuple)
         self.assertEqual(items[1][0], "b")
         self.assertEqual(items[1][1], 34)
+
+        items = sorted(config.items(raw=True))
+        self.assertIsInstance(items, list)
+        self.assertIsInstance(items[0], tuple)
+        self.assertEqual(items[0][0], "a")
+        self.assertEqual(items[0][1].value, 12)
+        self.assertIsInstance(items[1], tuple)
+        self.assertEqual(items[1][0], "b")
+        self.assertEqual(items[1][1].value, 34)
 
     def test_schema(self):
         config = Config({
@@ -408,3 +418,89 @@ class TestConfig(unittest.TestCase):
                     }
                 }
             })
+
+    def test_update_value_by_argument(self):
+        config = Config({"a": 12, "b": 13, "c": {"d": {"e": 45}}})
+        config.update_value_by_argument(
+            argname="a", value=34, ignore_not_found=False)
+        self.assertEqual(config.a, 34)
+        config.update_value_by_argument(
+            argname="b", value="56", ignore_not_found=False)
+        self.assertEqual(config.b, 56)
+        config.update_value_by_argument(
+            argname="c_d_e", value=23454, ignore_not_found=False)
+        self.assertEqual(config.c.d.e, 23454)
+        self.assertRaises(
+            AttributeError,
+            config.update_value_by_argument,
+            argname="c_d",
+            value=12,
+            ignore_not_found=False)
+        config.update_value_by_argument(
+            argname="c_d", value=12, ignore_not_found=True)
+        self.assertEqual(config.c.d.e, 23454)
+        config.update_value_by_argument(
+            argname=["a"], value=34, ignore_not_found=False)
+        self.assertEqual(config.a, 34)
+        config.update_value_by_argument(
+            argname=["c", "d", "e"], value=67, ignore_not_found=False)
+        self.assertEqual(config.c.d.e, 67)
+
+    def test_update_values_by_arguments(self):
+        config = Config({"a": 12, "b": 13, "c": {"d": {"e": 45}}})
+        config.update_values_by_arguments(
+            args={"a": 34,
+                  "b": 56,
+                  "c_d_e": 12}, ignore_not_found=False)
+        self.assertEqual(config.a, 34)
+        self.assertEqual(config.b, 56)
+        self.assertEqual(config.c.d.e, 12)
+        self.assertRaises(
+            AttributeError,
+            config.update_values_by_arguments,
+            args={"a": 12,
+                  "b": 34,
+                  "c_d": 45},
+            ignore_not_found=False)
+
+        config.update_values_by_arguments(
+            args={"a": 0,
+                  "b": 1,
+                  "c_d": 45}, ignore_not_found=True)
+        self.assertEqual(config.a, 0)
+        self.assertEqual(config.b, 1)
+        self.assertEqual(config.c.d.e, 12)
+
+    def test_argument_parser(self):
+        config = Config({"a": 1, "b": 2, "c": {"d": {"e": [1, 2, 3]}}})
+        parser = config.argument_parser()
+        args = parser.parse_args(["--a", "12", "--b", "12"])
+        self.assertEqual(args.a, 12)
+        self.assertEqual(args.b, 12)
+        self.assertEqual(args.c_d_e, [1, 2, 3])
+        config.update_values_by_arguments(args=args, ignore_not_found=False)
+        self.assertEqual(config.a, 12)
+        self.assertEqual(config.b, 12)
+        self.assertEqual(config.c.d.e, [1, 2, 3])
+
+        config = Config({"a": 1, "b": 2, "c": {"d": {"e": [1, 2, 3]}}})
+        parser = config.argument_parser()
+        args = parser.parse_args(
+            ["--a", "12", "--b", "12", "--c-d-e", "1", "2", "3"])
+        self.assertEqual(args.a, 12)
+        self.assertEqual(args.b, 12)
+        self.assertEqual(args.c_d_e, ["1", "2", "3"])
+        config = Config({
+            "c": {
+                "d": {
+                    "e": {
+                        "$type": list,
+                        "argparse": {
+                            "type": int,
+                        }
+                    }
+                }
+            }
+        })
+        args = parser.parse_args(["--c-d-e", "1", "2", "3"])
+        self.assertEqual(args.c_d_e, [1, 2, 3])
