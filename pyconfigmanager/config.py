@@ -6,6 +6,46 @@ import argparse
 import sys
 
 
+def get_config(schema=[], values=[], **kwargs):
+    if (not isinstance(schema, list)) and (not isinstance(schema, tuple)):
+        schema = [schema]
+    if (not isinstance(values, list)) and (not isinstance(values, tuple)):
+        values = [values]
+    config = Config()
+    for item in normalize_dict(schema):
+        config.update_schema(
+            schema=utils.get_item_by_category(item, **kwargs), merge=True)
+    for item in normalize_dict(values):
+        config.update_values(values=utils.get_item_by_category(item, **kwargs))
+    return config
+
+
+def normalize_dict(data):
+    print(data)
+    for item in data:
+        if isinstance(item, str):
+            for _, entry in enumerate(load_config(item)):
+                yield entry
+        else:
+            yield item
+
+
+def load_config(filename):
+    filetype = utils.detect_filetype(filename)
+    if filetype == "json":
+        return utils.load_json(filenames=filename)
+    elif filetype == "yaml":
+        return utils.load_yaml(filenames=filename)
+
+
+def dump_config(values, filename):
+    filetype = utils.detect_filetype(filename)
+    if filetype == "json":
+        utils.dump_json(values, filename)
+    elif filetype == "yaml":
+        utils.dump_yaml(values, filename)
+
+
 class Config():
     ITEM_INDICATOR = "$"
 
@@ -135,6 +175,8 @@ class Config():
                 continue
             if schema[name] is None:
                 continue
+            if name not in self:
+                self.setattr(name, schema[name], raw=True)
             attr = self.getattr(name, raw=True)
             init_attr = Config.__new__(Config, schema[name])
             if isinstance(attr, Item) and isinstance(init_attr, Item):
@@ -313,15 +355,9 @@ class Config():
             filenames = filename
 
         for filename in filenames:
-            filetype = utils.detect_filetype(filename)
-            if filetype == "json":
-                for values in utils.load_json(filenames=filename):
-                    self.update_values(
-                        values=utils.get_item_by_category(values, **kwargs))
-            elif filetype == "yaml":
-                for values in utils.load_yaml(filenames=filename):
-                    self.update_values(
-                        values=utils.get_item_by_category(values, **kwargs))
+            for values in load_config(filename=filename):
+                self.update_values(
+                    values=utils.get_item_by_category(values, **kwargs))
 
     def dump_config(self,
                     filename="",
@@ -335,10 +371,6 @@ class Config():
         values = self.values()
         if category:
             values = {category: values}
-        filetype = utils.detect_filetype(filename)
-        if filetype == "json":
-            utils.dump_json(values, filename=filename)
-        elif filetype == "yaml":
-            utils.dump_yaml(values, filename=filename)
+        dump_config(values, filename=filename)
         if exit:
             sys.exit(0)

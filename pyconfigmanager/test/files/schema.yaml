@@ -1,0 +1,8 @@
+test:
+  a:
+    $type: str
+  b: 12
+  c:
+    d: 12
+    e: hello
+  e: 12
