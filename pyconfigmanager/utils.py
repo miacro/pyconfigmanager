@@ -138,3 +138,19 @@ def dump_json(json, filename=None):
 
 def detect_filetype(filename):
     return filename[filename.rfind(".") + 1:].lower()
+
+
+def load_config(filename):
+    filetype = detect_filetype(filename)
+    if filetype == "json":
+        return load_json(filenames=filename)
+    elif filetype == "yaml":
+        return load_yaml(filenames=filename)
+
+
+def dump_config(values, filename):
+    filetype = detect_filetype(filename)
+    if filetype == "json":
+        dump_json(values, filename)
+    elif filetype == "yaml":
+        dump_yaml(values, filename)
