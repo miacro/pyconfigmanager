@@ -42,7 +42,9 @@ class Item(BasicItem):
 
     def __setattr__(self, name, value):
         if name == "argparse":
-            if isinstance(value, dict):
+            if isinstance(value, ArgparseItem):
+                pass
+            elif isinstance(value, dict):
                 value = ArgparseItem(**value)
             else:
                 value = bool(value)
@@ -75,6 +77,14 @@ class Item(BasicItem):
                 for key, value in vars(self.argparse).items()
                 if value is not None
             })
+        if issubclass(locate_type(self.type), list):
+            options["nargs"] = "*"
+            options["type"] = None
+            if isinstance(self.argparse, ArgparseItem):
+                if self.argparse.nargs is not None:
+                    options["nargs"] = self.argparse.nargs
+                if self.argparse.type is not None:
+                    options["type"] = self.argparse.type
         return options
 
     def assert_value(self, item=None):

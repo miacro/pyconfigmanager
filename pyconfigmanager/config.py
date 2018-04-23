@@ -200,10 +200,8 @@ class Config():
                     continue
                 options = attr.argparse_options()
                 del options["dest"]
-                options["type"] = locate_type(options["type"])
-                if issubclass(options["type"], list):
-                    if options["nargs"] is None:
-                        options["nargs"] = "*"
+                if isinstance(options["type"], str):
+                    options["type"] = locate_type(options["type"])
                 parser.add_argument(
                     "--" + arg_name,
                     dest=arg_name.replace("-", "_"),

@@ -502,5 +502,22 @@ class TestConfig(unittest.TestCase):
                 }
             }
         })
+        parser = config.argument_parser()
         args = parser.parse_args(["--c-d-e", "1", "2", "3"])
         self.assertEqual(args.c_d_e, [1, 2, 3])
+
+        config = Config({
+            "c": {
+                "d": {
+                    "e": {
+                        "$type": list,
+                        "argparse": {
+                            "nargs": 2
+                        }
+                    }
+                }
+            }
+        })
+        parser = config.argument_parser()
+        args = parser.parse_args(["--c-d-e", "1", "2"])
+        self.assertEqual(args.c_d_e, ["1", "2"])
