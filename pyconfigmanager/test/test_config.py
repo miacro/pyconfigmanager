@@ -1,6 +1,9 @@
 import unittest
 from pyconfigmanager.config import Config
 from pyconfigmanager.item import Item
+from pyconfigmanager import utils
+import os
+import tempfile
 
 
 class TestConfig(unittest.TestCase):
@@ -234,6 +237,19 @@ class TestConfig(unittest.TestCase):
         self.assertIsInstance(items[1], tuple)
         self.assertEqual(items[1][0], "b")
         self.assertEqual(items[1][1].value, 34)
+
+    def test_values(self):
+        config = Config({"a": 12, "b": 34, "c": {"d": {"e": "hello"}}})
+        values = config.values()
+        self.assertDictEqual(values, {
+            "a": 12,
+            "b": 34,
+            "c": {
+                "d": {
+                    "e": "hello"
+                }
+            }
+        })
 
     def test_schema(self):
         config = Config({
@@ -542,3 +558,173 @@ class TestConfig(unittest.TestCase):
         parser = config.argument_parser()
         args = parser.parse_args(["--c-d-e", "1", "2"])
         self.assertEqual(args.c_d_e, ["1", "2"])
+
+    def test_update_values(self):
+        config = Config({"a": 1, "b": {"c": 2}, "d": {"e": {"f": "hello"}}})
+        self.assertRaises(
+            ValueError, config.update_values, values={
+                "a": 2.25,
+                "b": 12
+            })
+        self.assertRaises(AttributeError, config.update_values, {
+            "a": 2.34,
+            "b": {
+                "d": 12
+            }
+        })
+        config.update_values({
+            "a": 2.34,
+            "b": {
+                "c": 5
+            },
+            "d": {
+                "e": {
+                    "f": {
+                        "g": 12
+                    }
+                }
+            }
+        })
+        self.assertEqual(config.a, 2)
+        self.assertEqual(config.b.c, 5)
+        self.assertEqual(config.d.e.f, "{'g': 12}")
+
+    def test_update_values_by_file(self):
+        filedir = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), "files")
+        jsonfile = os.path.join(filedir, "1.json")
+        yamlfile = os.path.join(filedir, "1.yaml")
+        config = Config({"a": 1, "b": 2, "c": {"d": "123", "f": 34}})
+        config.update_values_by_file(filename=jsonfile)
+        self.assertEqual(config.a, 12)
+        self.assertEqual(config.b, 34)
+        self.assertEqual(config.c.d, "hello")
+        self.assertEqual(config.c.f, 34)
+        config = Config({"a": 1, "b": 2, "c": {"d": "123", "f": 34}})
+        config.update_values_by_file(filename=yamlfile)
+        self.assertEqual(config.a, 12)
+        self.assertEqual(config.b, 34)
+        self.assertEqual(config.c.d, "hello")
+        self.assertEqual(config.c.f, 34)
+        config = Config({"a": 1, "b": 2, "c": {"d": "123", "f": 34}})
+        config.update_values_by_file(
+            filename=os.path.join(filedir, "2.yaml"),
+            category="test",
+            excludes=["a", "b"])
+        self.assertEqual(config.a, 1)
+        self.assertEqual(config.b, 2)
+        self.assertEqual(config.c.d, "hello")
+        self.assertEqual(config.c.f, 34)
+
+    def test_dump_config(self):
+        with tempfile.NamedTemporaryFile("wt") as temp_file:
+            pass
+        jsonfile = "{}.json".format(temp_file.name)
+        yamlfile = "{}.yaml".format(temp_file.name)
+        config = Config({
+            "a": 1,
+            "b": 2,
+            "c": {
+                "d": "123",
+                "f": 34
+            },
+            "config": {
+                "file": ""
+            }
+        })
+        self.assertRaises(
+            ValueError,
+            config.dump_config,
+            filename="",
+            config_name="config.file",
+            exit=False)
+        config.dump_config(filename=jsonfile, exit=False, category="test")
+        result = [item for item in utils.load_json(filenames=jsonfile)]
+        self.assertListEqual(result, [{
+            "test": {
+                "a": 1,
+                "b": 2,
+                "c": {
+                    "d": "123",
+                    "f": 34
+                },
+                "config": {
+                    "file": ""
+                }
+            }
+        }])
+        config.dump_config(filename=yamlfile, exit=False, category="")
+        result = [item for item in utils.load_yaml(filenames=yamlfile)]
+        self.assertListEqual(result, [{
+            "a": 1,
+            "b": 2,
+            "c": {
+                "d": "123",
+                "f": 34
+            },
+            "config": {
+                "file": ""
+            }
+        }])
+
+        config.config.file = yamlfile
+        config.dump_config(
+            config_name="config.file", exit=False, category="12")
+        result = [item for item in utils.load_yaml(filenames=yamlfile)]
+        self.assertListEqual(result, [{
+            "12": {
+                "a": 1,
+                "b": 2,
+                "c": {
+                    "d": "123",
+                    "f": 34
+                },
+                "config": {
+                    "file": yamlfile
+                }
+            }
+        }])
+        os.remove(jsonfile)
+        os.remove(yamlfile)
+
+    def test_update_values_by_argument_parser(self):
+        filedir = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), "files")
+        configfile = os.path.join(filedir, "2.yaml")
+        origin = {
+            "a": 1,
+            "b": 2,
+            "c": {
+                "d": "123",
+                "f": 34
+            },
+            "config": {
+                "file": ""
+            }
+        }
+        config = Config(origin)
+        config.update_values_by_argument_parser(
+            arguments=["--a", "23", "--c-d", "hello"], config_name="")
+        self.assertEqual(config.a, 23)
+        self.assertEqual(config.c.d, "hello")
+
+        config = Config(origin)
+        config.update_values_by_argument_parser(
+            arguments=[
+                "--a", "23", "--c-d", "hell", "--config-file", configfile
+            ],
+            config_name="config.file",
+            category="test")
+        self.assertEqual(config.a, 23)
+        self.assertEqual(config.c.d, "hell")
+        self.assertEqual(config.b, 34)
+
+        config = Config(origin)
+        config.config.file = configfile
+        config.update_values_by_argument_parser(
+            arguments=["--a", "23", "--c-d", "hell"],
+            config_name="config.file",
+            category="test")
+        self.assertEqual(config.a, 23)
+        self.assertEqual(config.c.d, "hell")
+        self.assertEqual(config.b, 34)

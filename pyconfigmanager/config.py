@@ -1,8 +1,9 @@
 from .item import Item
-from .utils import typename, locate_type
+from pyconfigmanager import utils
 import logging
 from .logging_config import get_logging_level
 import argparse
+import sys
 
 
 class Config():
@@ -11,7 +12,7 @@ class Config():
     def __init__(self, schema={}):
         if not isinstance(schema, dict):
             raise ValueError("schema('{}') must be instance of dict".format(
-                typename(type(schema))))
+                utils.typename(type(schema))))
         self.update_schema(schema=schema, merge=False)
 
     def __new__(self, schema={}):
@@ -31,7 +32,7 @@ class Config():
             schema = {"value": schema}
         if (("value" in schema) and (schema["value"] is not None)):
             if (("type" not in schema) or (schema["type"] is None)):
-                schema["type"] = typename(type(schema["value"]))
+                schema["type"] = utils.typename(type(schema["value"]))
         return Item(**schema)
 
     def __iter__(self):
@@ -61,7 +62,6 @@ class Config():
                     "'{}' object has no attribute '{}'".format(
                         self.__class__.__name__, name))
             attr = self
-            print(names)
             for name in names:
                 attr = attr.getattr(name=name, raw=raw, name_slicer=None)
             return attr
@@ -92,6 +92,18 @@ class Config():
         result = []
         for name in self:
             result.append((name, self.getattr(name, raw=raw)))
+        return result
+
+    def values(self):
+        result = {}
+        for name in self:
+            attr = self.getattr(name, raw=True)
+            if isinstance(attr, Config):
+                result[name] = attr.values()
+            elif isinstance(attr, Item):
+                result[name] = attr.value
+            else:
+                result[name] = attr
         return result
 
     def schema(self, name=None):
@@ -154,7 +166,7 @@ class Config():
                 check_attr = Config.__new__(Config, schema[attr_name])
                 assert isinstance(attr, type(check_attr)), (
                     "attribute '{}' is not instance of '{}'".format(
-                        show_name, typename((type(check_attr)))))
+                        show_name, utils.typename((type(check_attr)))))
             elif schema[attr_name] is True:
                 check_attr = None
             else:
@@ -213,7 +225,7 @@ class Config():
                 options = attr.argparse_options()
                 del options["dest"]
                 if isinstance(options["type"], str):
-                    options["type"] = locate_type(options["type"])
+                    options["type"] = utils.locate_type(options["type"])
                 parser.add_argument(
                     "--" + arg_name,
                     dest=arg_name.replace("-", "_"),
@@ -260,3 +272,73 @@ class Config():
             args = vars(args)
         for arg_name in args:
             self.update_value_by_argument(arg_name, args[arg_name], **kwargs)
+
+    def update_values_by_argument_parser(self,
+                                         parser=None,
+                                         arguments=None,
+                                         config_name="config.filename",
+                                         **kwargs):
+        parser = self.argument_parser(parser=parser)
+        args = parser.parse_args(arguments)
+        # update values to get prog config filename
+        self.update_values_by_arguments(args)
+        if not config_name:
+            return args
+        attr = self.getattr(config_name, raw=False, name_slicer=".")
+        if not attr:
+            return args
+        self.update_values_by_file(filename=attr, **kwargs)
+        # force args overrides prog_config
+        parser = self.argument_parser()
+        args = parser.parse_args(arguments)
+        self.update_values_by_arguments(args)
+        return args
+
+    def update_values(self, values):
+        for name in values:
+            attr = self.getattr(name, raw=True)
+            if isinstance(attr, Config):
+                if not isinstance(values[name], dict):
+                    raise ValueError(
+                        "'values[{}]' == '{}' is not instance of 'dict'".
+                        format(name, values[name]))
+                attr.update_values(values[name])
+            elif isinstance(attr, Item):
+                self.setattr(name, values[name], raw=False)
+
+    def update_values_by_file(self, filename=[], **kwargs):
+        if isinstance(filename, str):
+            filenames = [filename]
+        else:
+            filenames = filename
+
+        for filename in filenames:
+            filetype = utils.detect_filetype(filename)
+            if filetype == "json":
+                for values in utils.load_json(filenames=filename):
+                    self.update_values(
+                        values=utils.get_item_by_category(values, **kwargs))
+            elif filetype == "yaml":
+                for values in utils.load_yaml(filenames=filename):
+                    self.update_values(
+                        values=utils.get_item_by_category(values, **kwargs))
+
+    def dump_config(self,
+                    filename="",
+                    config_name="config.dump",
+                    exit=True,
+                    category=""):
+        if not filename and config_name:
+            filename = self.getattr(config_name, raw=False, name_slicer=".")
+        if not filename:
+            raise ValueError("no filename specified")
+        values = self.values()
+        if category:
+            values = {category: values}
+        filetype = utils.detect_filetype(filename)
+        if filetype == "json":
+            utils.dump_json(values, filename=filename)
+        elif filetype == "yaml":
+            utils.dump_yaml(values, filename=filename)
+        if exit:
+            sys.exit(0)

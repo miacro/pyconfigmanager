@@ -2,6 +2,7 @@ import unittest
 from pyconfigmanager.utils import typename, locate_type, convert_type
 from pyconfigmanager.utils import get_item_by_category
 from pyconfigmanager.utils import load_yaml, load_json, dump_json, dump_yaml
+from pyconfigmanager.utils import detect_filetype
 import tempfile
 import os
 
@@ -216,3 +217,10 @@ w: 12
 
         test_one([{"a": 12, "b": 34, "c": {"d": 78}}])
         test_one({"a": 23, "b": 45, "c": {"d": 5465}})
+
+    def test_detect_filetype(self):
+        self.assertEqual(detect_filetype("abc.json"), "json")
+        self.assertEqual(detect_filetype("abc.JSON"), "json")
+        self.assertEqual(detect_filetype("abc.123"), "123")
+        self.assertEqual(detect_filetype("abc.Yaml"), "yaml")
+        self.assertEqual(detect_filetype("abc.yAMl"), "yaml")
