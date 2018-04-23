@@ -109,20 +109,31 @@ class TestConfig(unittest.TestCase):
         self.assertDictEqual(result, {"a": 1, "b": 34})
 
     def test_getattr(self):
-        config = Config({"a": 1, "b": 2, "c": {"d": 12, "e": 34}})
+        config = Config({
+            "a": 1,
+            "b": 2,
+            "c": {
+                "d": 12,
+                "e": {
+                    "f": {
+                        "g": 34
+                    }
+                }
+            }
+        })
 
         self.assertRaises(AttributeError, config.getattr, "abcd")
         self.assertEqual(config.a, 1)
         self.assertEqual(config.b, 2)
         self.assertIsInstance(config.c, Config)
         self.assertEqual(config.c.d, 12)
-        self.assertEqual(config.c.e, 34)
+        self.assertEqual(config.c.e.f.g, 34)
 
         self.assertEqual(config.getattr("a", raw=False), 1)
         self.assertEqual(config.getattr("b", raw=False), 2)
         self.assertIsInstance(config.getattr("c", raw=False), Config)
         self.assertEqual(config.c.getattr("d", raw=False), 12)
-        self.assertEqual(config.c.getattr("e", raw=False), 34)
+        self.assertEqual(config.c.e.f.getattr("g", raw=False), 34)
 
         self.assertIsInstance(config.getattr("a", raw=True), Item)
         self.assertEqual(config.getattr("a", raw=True).type, "int")
@@ -134,9 +145,19 @@ class TestConfig(unittest.TestCase):
         self.assertIsInstance(config.c.getattr("d", raw=True), Item)
         self.assertEqual(config.c.getattr("d", raw=True).type, "int")
         self.assertEqual(config.c.getattr("d", raw=True).value, 12)
-        self.assertIsInstance(config.c.getattr("e", raw=True), Item)
-        self.assertEqual(config.c.getattr("e", raw=True).type, "int")
-        self.assertEqual(config.c.getattr("e", raw=True).value, 34)
+        self.assertIsInstance(config.c.e.f.getattr("g", raw=True), Item)
+        self.assertEqual(config.c.e.f.getattr("g", raw=True).type, "int")
+        self.assertEqual(config.c.e.f.getattr("g", raw=True).value, 34)
+
+        self.assertEqual(config.getattr("a", raw=False, name_slicer="."), 1)
+        self.assertEqual(
+            config.getattr("c.e.f.g", raw=False, name_slicer="."), 34)
+        self.assertEqual(
+            config.getattr("c_e_f_g", raw=False, name_slicer="_"), 34)
+        self.assertIsInstance(
+            config.getattr("c.e.f.g", raw=True, name_slicer="."), Item)
+        self.assertEqual(
+            config.getattr("c.e.f.g", raw=True, name_slicer=".").value, 34)
 
     def test_setattr(self):
         config = Config({"a": 1, "b": 2, "sub": {"c": "hello", "d": 0.9}})

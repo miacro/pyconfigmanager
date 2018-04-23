@@ -53,11 +53,23 @@ class Config():
     def __setattr__(self, name, value):
         return super().__setattr__(name, value)
 
-    def getattr(self, name, raw=False):
-        attr = super().__getattribute__(name)
-        if (not raw) and isinstance(attr, Item):
-            return attr.value
-        return attr
+    def getattr(self, name, raw=False, name_slicer=None):
+        if name_slicer:
+            names = list(filter(str, name.split(name_slicer)))
+            if not names:
+                raise AttributeError(
+                    "'{}' object has no attribute '{}'".format(
+                        self.__class__.__name__, name))
+            attr = self
+            print(names)
+            for name in names:
+                attr = attr.getattr(name=name, raw=raw, name_slicer=None)
+            return attr
+        else:
+            attr = super().__getattribute__(name)
+            if (not raw) and isinstance(attr, Item):
+                return attr.value
+            return attr
 
     def setattr(self, name, value, raw=False):
         if not raw:
