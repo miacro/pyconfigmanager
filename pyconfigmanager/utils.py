@@ -1,17 +1,22 @@
 from pydoc import locate
 import logging
+import yaml
+import os
+import json as JSON
 
 
-def get_item_by_catrgory(item, category="", exclude_categories=["metadata"]):
-    result = {}
-    result.update(item)
+def get_item_by_category(item, category="", excludes=["schema"]):
+    result = dict(item.items())
     if category:
-        result = result[category]
-    if not exclude_categories:
+        if category in result:
+            result = result[category]
+        else:
+            return {}
+    if not excludes:
         return result
-    for exclude_category in exclude_categories:
-        if exclude_category in result:
-            del result[exclude_category]
+    for exclude in excludes:
+        if exclude in result:
+            del result[exclude]
     return result
 
 
@@ -45,3 +50,91 @@ def convert_type(value, value_type):
         value = None
     finally:
         return value
+
+
+def load_yaml(contents=[], filenames=[]):
+    def load_content(content):
+        for item in yaml.load_all(content):
+            if item is not None:
+                yield item
+
+    if isinstance(contents, str):
+        contents = [contents]
+    elif contents is None:
+        contents = []
+
+    if isinstance(filenames, str):
+        filenames = [filenames]
+    elif filenames is None:
+        filenames = []
+
+    for content in contents:
+        for item in load_content(content):
+            yield item
+
+    for filename in filenames:
+        with open(os.path.abspath(filename), "r") as stream:
+            for item in load_content(stream):
+                yield item
+
+
+def dump_yaml(data, filename=""):
+    if isinstance(data, list):
+        dump = yaml.dump_all
+    else:
+        dump = yaml.dump
+    output = dump(
+        data,
+        default_style="",
+        canonical=False,
+        indent=2,
+        default_flow_style=False,
+        encoding="utf-8",
+        allow_unicode=True)
+    if not filename:
+        return output
+    with open(filename, "wb") as stream:
+        stream.write(output)
+    return output
+
+
+def load_json(contents=[], filenames=[]):
+    def load_content(content):
+        json = JSON.loads(content)
+        if not isinstance(json, list):
+            json = [json]
+        for item in json:
+            yield item
+
+    if isinstance(contents, str):
+        contents = [contents]
+    elif contents is None:
+        contents = []
+
+    if isinstance(filenames, str):
+        filenames = [filenames]
+    elif filenames is None:
+        filenames = []
+
+    for content in contents:
+        for item in load_content(content):
+            yield item
+    for filename in filenames:
+        with open(os.path.expanduser(os.path.expandvars(filename)),
+                  "r") as stream:
+            content = stream.read()
+        for item in load_content(content):
+            yield item
+
+
+def dump_json(json, filename=None):
+    content = JSON.dumps(json, ensure_ascii=False, indent=2)
+    if filename:
+        with open(os.path.expanduser(os.path.expandvars(filename)),
+                  "wt") as stream:
+            stream.writelines(content)
+    return content
+
+
+def detect_filetype(filename):
+    return filename[filename.rfind(".") + 1:].lower()
