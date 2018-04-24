@@ -12,6 +12,11 @@ with open(
 requirements = [
     'PyYaml',
 ]
+dependency_links = [
+    """git+https://github.com/miacro/pyconfigmanager.git\
+@master#egg=pyconfigmanager-9999"""
+]
+dependency_links = []
 
 
 def get_scripts():
@@ -53,4 +58,5 @@ setup(
     scripts=get_scripts(),
     ext_modules=[],
     package_data={'pyconfigmanager': get_package_data()},
+    dependency_links=dependency_links,
 )
