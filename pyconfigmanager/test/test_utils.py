@@ -3,11 +3,17 @@ from pyconfigmanager.utils import typename, locate_type, convert_type
 from pyconfigmanager.utils import get_item_by_category
 from pyconfigmanager.utils import load_yaml, load_json, dump_json, dump_yaml
 from pyconfigmanager.utils import detect_filetype
+from pyconfigmanager.utils import load_config
 import tempfile
 import os
 
 
 class TestUtils(unittest.TestCase):
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.filesdir = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), "files")
+
     def test_typename(self):
         self.assertEqual(typename(str), "str")
         self.assertEqual(typename(bool), "bool")
@@ -224,3 +230,40 @@ w: 12
         self.assertEqual(detect_filetype("abc.123"), "123")
         self.assertEqual(detect_filetype("abc.Yaml"), "yaml")
         self.assertEqual(detect_filetype("abc.yAMl"), "yaml")
+
+    def test_load_config(self):
+        jsonfile = os.path.join(self.filesdir, "1.json")
+        yamlfile = os.path.join(self.filesdir, "2.yaml")
+        yamlfile2 = os.path.join(self.filesdir, "schema.yaml")
+
+        result = [
+            item
+            for item in load_config(filename=[yamlfile, jsonfile, yamlfile2])
+        ]
+        self.assertListEqual(result, [{
+            "test": {
+                "a": 12,
+                "b": 34,
+                "c": {
+                    "d": "hello"
+                }
+            },
+        }, {
+            "a": 12,
+            "b": 34,
+            "c": {
+                "d": "hello"
+            }
+        }, {
+            "test": {
+                "a": {
+                    "$type": "str"
+                },
+                "b": 12,
+                "c": {
+                    "d": 12,
+                    "e": "hello"
+                },
+                "e": 12
+            }
+        }])

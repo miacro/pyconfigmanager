@@ -141,11 +141,18 @@ def detect_filetype(filename):
 
 
 def load_config(filename):
-    filetype = detect_filetype(filename)
-    if filetype == "json":
-        return load_json(filenames=filename)
-    elif filetype == "yaml":
-        return load_yaml(filenames=filename)
+    if isinstance(filename, list) or isinstance(filename, tuple):
+        for filename_i in filename:
+            for _, item in enumerate(load_config(filename_i)):
+                yield item
+    else:
+        filetype = detect_filetype(filename)
+        if filetype == "json":
+            for item in load_json(filenames=filename):
+                yield item
+        elif filetype == "yaml":
+            for item in load_yaml(filenames=filename):
+                yield item
 
 
 def dump_config(values, filename):

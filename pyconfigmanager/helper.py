@@ -1,4 +1,4 @@
-from . import yaml
+from .utils import load_config
 from . import utils
 import os
 
@@ -10,7 +10,7 @@ def get_helpers(filenames=[DEFAULT_HELPER_FILE],
                 category="helper",
                 exclude_categories=[]):
     result = {}
-    for _, item in enumerate(yaml.load_yaml(filenames=filenames)):
+    for _, item in enumerate(load_config(filenames=filenames)):
         item = utils.get_item_by_catrgory(
             item, category=category, exclude_categories=exclude_categories)
         result.update(item)
