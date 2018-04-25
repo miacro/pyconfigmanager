@@ -5,18 +5,20 @@ helper:
     dump: ""
   prog: &prog
     input:
-      type: list
+      $type: list
       value:
       -
-      nargs: "*"
+      argparse:
+        nargs: "*"
     output: ""
   logging: &logging
     verbosity:
-      type: str
+      $type: str
       value: INFO
-      choices:
-      - DEBUG
-      - INFO
-      - WARN
-      - ERROR
-      - CRITICAL
+      argparse:
+        choices:
+        - DEBUG
+        - INFO
+        - WARN
+        - ERROR
+        - CRITICAL
