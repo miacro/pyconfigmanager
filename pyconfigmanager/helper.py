@@ -8,11 +8,11 @@ DEFAULT_HELPER_FILE = os.path.join(
 
 def get_helpers(filenames=[DEFAULT_HELPER_FILE],
                 category="helper",
-                exclude_categories=[]):
+                excludes=[]):
     result = {}
-    for _, item in enumerate(load_config(filenames=filenames)):
-        item = utils.get_item_by_catrgory(
-            item, category=category, exclude_categories=exclude_categories)
+    for _, item in enumerate(load_config(filename=filenames)):
+        item = utils.get_item_by_category(
+            item, category=category, excludes=excludes)
         result.update(item)
 
     return result
