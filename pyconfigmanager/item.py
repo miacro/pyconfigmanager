@@ -13,6 +13,9 @@ class BasicItem():
                 type(self).__name__, name))
         return super().__setattr__(name, value)
 
+    def __repr__(self):
+        return str(vars(self))
+
     def update_values(self, values, merge=False):
         for name in values:
             if (not merge) or (values[name] is not None):

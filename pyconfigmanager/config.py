@@ -39,6 +39,9 @@ class Config():
         for name in self.__dict__:
             yield name
 
+    def __repr__(self):
+        return str(self.values())
+
     def __getitem__(self, name):
         return self.getattr(name, raw=False)
 
