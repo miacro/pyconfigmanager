@@ -195,6 +195,11 @@ class TestItem(unittest.TestCase):
         compare_options["default"] = ["1"]
         self.assertDictEqual(item.argparse_options(), compare_options)
 
+        item = Item(type=None, value=1)
+        compare_options = dict(empty_options.items())
+        compare_options["default"] = 1
+        self.assertDictEqual(item.argparse_options(), compare_options)
+
     def test_assert_value(self):
         item = Item()
         item.type = None

@@ -26,6 +26,11 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(
             locate_type("unittest.case.TestCase"), unittest.TestCase)
         self.assertEqual(locate_type("module"), type(unittest))
+        self.assertEqual(locate_type(None), None)
+        self.assertEqual(locate_type(""), None)
+        self.assertEqual(locate_type({"a": 1}), None)
+        self.assertEqual(locate_type(str), str)
+        self.assertEqual(locate_type(int), int)
 
     def test_convert_type(self):
         self.assertEqual(convert_type("12", "int"), 12)

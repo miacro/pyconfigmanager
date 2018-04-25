@@ -28,12 +28,21 @@ def typename(type_instance):
 
 
 def locate_type(name):
+    if not name:
+        return None
+
+    if isinstance(name, type):
+        return name
+
+    if not isinstance(name, str):
+        return None
+
     if name == "module":
         name = "types.ModuleType"
-    type = locate(name)
-    if type is None:
+    real_type = locate(name)
+    if real_type is None:
         raise NameError("type '{}' can not be located".format(name))
-    return type
+    return real_type
 
 
 def convert_type(value, value_type):

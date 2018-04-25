@@ -80,7 +80,7 @@ class Item(BasicItem):
                 for key, value in vars(self.argparse).items()
                 if value is not None
             })
-        if issubclass(locate_type(self.type), list):
+        if self.type and issubclass(locate_type(self.type), list):
             options["nargs"] = "*"
             options["type"] = None
             if isinstance(self.argparse, ArgparseItem):
