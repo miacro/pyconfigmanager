@@ -281,7 +281,7 @@ class Config():
     def update_values_by_argument_parser(self,
                                          parser=None,
                                          arguments=None,
-                                         config_name="config.filename",
+                                         config_name="config.file",
                                          **kwargs):
         parser = self.argument_parser(parser=parser)
         args = parser.parse_args(arguments)
