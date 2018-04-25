@@ -1,7 +1,7 @@
 ---
 helper:
   config: &config
-    filename: ""
+    file: ""
     dump: ""
   prog: &prog
     input:
