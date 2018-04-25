@@ -228,9 +228,8 @@ class Config():
                 if attr.argparse is False:
                     continue
                 options = attr.argparse_options()
-                del options["dest"]
-                if isinstance(options["type"], str):
-                    options["type"] = utils.locate_type(options["type"])
+                if "dest" in options:
+                    del options["dest"]
                 parser.add_argument(
                     "--" + arg_name,
                     dest=arg_name.replace("-", "_"),

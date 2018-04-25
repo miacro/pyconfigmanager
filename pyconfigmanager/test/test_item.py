@@ -1,5 +1,5 @@
 import unittest
-from pyconfigmanager.item import BasicItem, ArgparseItem, Item
+from pyconfigmanager.item import BasicItem, ArgparseItem, Item, str2bool
 
 
 class TestBasicItem(unittest.TestCase):
@@ -148,19 +148,9 @@ class TestItem(unittest.TestCase):
                 "action": "append"
             })
         empty_options = {
-            "type": None,
-            "nargs": None,
-            "const": None,
-            "default": None,
-            "choices": None,
-            "required": None,
             "help": " ",
-            "metavar": None,
-            "dest": None,
-            "action": None
         }
         compare_options = dict(empty_options.items())
-        compare_options["type"] = "str"
         compare_options["default"] = "hello"
         compare_options["action"] = "append"
         compare_options["help"] = " "
@@ -169,21 +159,18 @@ class TestItem(unittest.TestCase):
         item.argparse.type = "int"
         item.argparse.default = 123
         item.argparse.help = "empty"
-        compare_options["type"] = "int"
         compare_options["default"] = 123
         compare_options["help"] = "empty"
         self.assertDictEqual(item.argparse_options(), compare_options)
 
         compare_options = dict(empty_options.items())
         item = Item(type=list, value="1111")
-        compare_options["type"] = None
         compare_options["nargs"] = "*"
         compare_options["default"] = ["1", "1", "1", "1"]
         self.assertDictEqual(item.argparse_options(), compare_options)
 
         compare_options = dict(empty_options.items())
         item = Item(type=list, value="1111", argparse={"nargs": 2})
-        compare_options["type"] = None
         compare_options["nargs"] = 2
         compare_options["default"] = ["1", "1", "1", "1"]
         self.assertDictEqual(item.argparse_options(), compare_options)
@@ -198,6 +185,31 @@ class TestItem(unittest.TestCase):
         item = Item(type=None, value=1)
         compare_options = dict(empty_options.items())
         compare_options["default"] = 1
+        self.assertDictEqual(item.argparse_options(), compare_options)
+
+        item = Item(type=bool, value=True)
+        compare_options = dict(empty_options.items())
+        compare_options["default"] = True
+        compare_options["type"] = str2bool
+        self.assertDictEqual(item.argparse_options(), compare_options)
+        item = Item(type=bool, value=True, argparse={"type": int})
+        compare_options = dict(empty_options.items())
+        compare_options["default"] = True
+        compare_options["type"] = int
+        self.assertDictEqual(item.argparse_options(), compare_options)
+
+        item = Item(
+            type=int,
+            argparse={
+                "action": "store_true",
+                "type": int,
+                "metavar": "TEST",
+                "choices": [True, False],
+                "nargs": "*",
+                "const": "222"
+            })
+        compare_options = dict(empty_options.items())
+        compare_options["action"] = "store_true"
         self.assertDictEqual(item.argparse_options(), compare_options)
 
     def test_assert_value(self):

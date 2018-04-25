@@ -80,14 +80,35 @@ class Item(BasicItem):
                 for key, value in vars(self.argparse).items()
                 if value is not None
             })
-        if self.type and issubclass(locate_type(self.type), list):
-            options["nargs"] = "*"
+        if self.type:
+            if issubclass(locate_type(self.type), list):
+                options["nargs"] = "*"
+                options["type"] = None
+                if isinstance(self.argparse, ArgparseItem):
+                    if self.argparse.nargs is not None:
+                        options["nargs"] = self.argparse.nargs
+                    if self.argparse.type is not None:
+                        options["type"] = self.argparse.type
+            elif issubclass(locate_type(self.type), bool):
+                options["type"] = str2bool
+                if isinstance(self.argparse, ArgparseItem):
+                    if self.argparse.type is not None:
+                        options["type"] = self.argparse.type
+
+        if options["action"]:
             options["type"] = None
-            if isinstance(self.argparse, ArgparseItem):
-                if self.argparse.nargs is not None:
-                    options["nargs"] = self.argparse.nargs
-                if self.argparse.type is not None:
-                    options["type"] = self.argparse.type
+            options["metavar"] = None
+            options["choices"] = None
+            options["nargs"] = None
+            options["const"] = None
+
+        if options["type"]:
+            if isinstance(options["type"], str):
+                options["type"] = locate_type(options["type"])
+        options = {
+            key: value
+            for key, value in options.items() if value is not None
+        }
         return options
 
     def assert_value(self, item=None):
@@ -112,3 +133,16 @@ class Item(BasicItem):
             assert self.value <= item.max, (
                 "'{}' object: attribute 'value': '{}' required <= {}".format(
                     class_name, self.value, item.max))
+
+
+def str2bool(value):
+    return value.lower() in (
+        'true',
+        '1',
+        't',
+        'y',
+        'yes',
+        'yeah',
+        'yup',
+        'certainly',
+    )
