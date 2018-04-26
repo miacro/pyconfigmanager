@@ -41,7 +41,8 @@ class ArgparseItem(BasicItem):
 class Item(BasicItem):
     def __init__(self, **kwargs):
         super().__init__(
-            ["type", "value", "required", "min", "max", "argparse"], **kwargs)
+            ["type", "value", "required", "min", "max", "help", "argparse"],
+            **kwargs)
 
     def __setattr__(self, name, value):
         if name == "argparse":
@@ -71,7 +72,7 @@ class Item(BasicItem):
 
     def argparse_options(self):
         argparseitem = ArgparseItem(
-            type=self.type, default=self.value, help=" ")
+            type=self.type, default=self.value, help=self.help or " ")
         options = vars(argparseitem)
 
         if isinstance(self.argparse, ArgparseItem):

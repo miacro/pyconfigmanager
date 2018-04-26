@@ -212,6 +212,15 @@ class TestItem(unittest.TestCase):
         compare_options["action"] = "store_true"
         self.assertDictEqual(item.argparse_options(), compare_options)
 
+        item = Item(type=int, help="123")
+        compare_options = dict(empty_options.items())
+        compare_options["type"] = int
+        compare_options["help"] = "123"
+        self.assertDictEqual(item.argparse_options(), compare_options)
+        item.argparse = {"help": "1234"}
+        compare_options["help"] = "1234"
+        self.assertDictEqual(item.argparse_options(), compare_options)
+
     def test_assert_value(self):
         item = Item()
         item.type = None

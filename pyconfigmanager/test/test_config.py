@@ -275,7 +275,8 @@ class TestConfig(unittest.TestCase):
                 "$required": None,
                 "$max": None,
                 "$min": None,
-                "$argparse": None
+                "$argparse": None,
+                "$help": None,
             },
             "b": {
                 "$type": "int",
@@ -283,7 +284,17 @@ class TestConfig(unittest.TestCase):
                 "$required": None,
                 "$max": None,
                 "$min": None,
-                "$argparse": None
+                "$argparse": None,
+                "$help": None,
+            },
+            "c": {
+                "$type": "list",
+                "$value": [1, 2, 3],
+                "$required": None,
+                "$max": None,
+                "$min": None,
+                "$argparse": None,
+                "$help": None,
             },
             "sub": {
                 "d": {
@@ -292,7 +303,8 @@ class TestConfig(unittest.TestCase):
                     "$required": None,
                     "$max": None,
                     "$min": None,
-                    "$argparse": None
+                    "$argparse": None,
+                    "$help": None,
                 },
                 "f": {
                     "$type": "float",
@@ -300,7 +312,8 @@ class TestConfig(unittest.TestCase):
                     "$required": None,
                     "$max": None,
                     "$min": None,
-                    "$argparse": None
+                    "$argparse": None,
+                    "$help": None
                 },
                 "h": {
                     "$type": "int",
@@ -308,7 +321,8 @@ class TestConfig(unittest.TestCase):
                     "$required": None,
                     "$max": None,
                     "$min": None,
-                    "$argparse": None
+                    "$argparse": None,
+                    "$help": None,
                 },
                 "g": {
                     "type": {
@@ -317,15 +331,15 @@ class TestConfig(unittest.TestCase):
                         "$required": None,
                         "$max": None,
                         "$min": None,
-                        "$argparse": None
+                        "$argparse": None,
+                        "$help": None,
                     },
                 }
             },
         }
+        self.maxDiff = None
         schema = config.schema()
-        self.assertDictEqual(schema["a"], compare_result["a"])
-        self.assertDictEqual(schema["b"], compare_result["b"])
-        self.assertDictEqual(schema["sub"], compare_result["sub"])
+        self.assertDictEqual(schema, compare_result)
         self.assertDictEqual(config.schema("a"), compare_result["a"])
         self.assertDictEqual(
             config.schema(["a", "b"]), {
