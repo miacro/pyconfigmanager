@@ -213,13 +213,36 @@ class Config():
                             verbosity=verbosity,
                             name=show_name)
 
-    def argument_parser(self, parser=None, prefix=""):
+    def argument_parser(self,
+                        parser=None,
+                        prefix="",
+                        subcommands=(),
+                        command_name="command"):
         if not parser:
             parser = argparse.ArgumentParser(
                 formatter_class=argparse.ArgumentDefaultsHelpFormatter,
                 description="")
+        if subcommands:
+            subparsers = parser.add_subparsers(
+                title="subcommands", help="subcommands")
+        else:
+            subcommands = ()
+            subparsers = None
 
         for attr_name, attr in self.items(raw=True):
+            if attr_name == command_name:
+                continue
+            if attr_name in subcommands:
+                subparser = subparsers.add_parser(
+                    attr_name,
+                    formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+                    description=attr_name,
+                    help=attr_name)
+                subparser.set_defaults(**{command_name: attr_name})
+                self.getattr(
+                    attr_name, raw=True).argument_parser(parser=subparser)
+                continue
+
             arg_name = attr_name if not prefix else "{}-{}".format(
                 prefix, attr_name)
             if isinstance(attr, Config):
@@ -271,21 +294,39 @@ class Config():
             raise AttributeError(
                 "attr not found by argname '{}'".format(argname))
 
-    def update_values_by_arguments(self, args, **kwargs):
+    def update_values_by_arguments(self,
+                                   args,
+                                   subcommands=(),
+                                   command_name="command",
+                                   **kwargs):
         if not isinstance(args, dict):
             args = vars(args)
+
+        if (subcommands and command_name in args
+                and args[command_name] in subcommands):
+            subconfig = self.getattr(args[command_name], raw=True)
+        else:
+            subconfig = None
         for arg_name in args:
+            if subconfig:
+                try:
+                    subconfig.update_value_by_argument(
+                        arg_name, args[arg_name], ignore_not_found=False)
+                    continue
+                except AttributeError:
+                    pass
             self.update_value_by_argument(arg_name, args[arg_name], **kwargs)
 
     def update_values_by_argument_parser(self,
                                          parser=None,
                                          arguments=None,
                                          config_name="config.file",
+                                         subcommands=(),
                                          **kwargs):
-        parser = self.argument_parser(parser=parser)
+        parser = self.argument_parser(parser=parser, subcommands=subcommands)
         args = parser.parse_args(arguments)
         # update values to get prog config filename
-        self.update_values_by_arguments(args)
+        self.update_values_by_arguments(args, subcommands=subcommands)
         if not config_name:
             return args
         attr = self.getattr(config_name, raw=False, name_slicer=".")
@@ -293,9 +334,9 @@ class Config():
             return args
         self.update_values_by_file(filename=attr, **kwargs)
         # force args overrides prog_config
-        parser = self.argument_parser()
+        parser = self.argument_parser(subcommands=subcommands)
         args = parser.parse_args(arguments)
-        self.update_values_by_arguments(args)
+        self.update_values_by_arguments(args, subcommands=subcommands)
         return args
 
     def update_values(self, values):

@@ -527,6 +527,65 @@ class TestConfig(unittest.TestCase):
         self.assertEqual(config.b, 1)
         self.assertEqual(config.c.d.e, 12)
 
+        config = Config({
+            "subcommand": "",
+            "a": {
+                "a": 1,
+                "b": 2
+            },
+            "b": {
+                "c": 3,
+                "d": 4
+            },
+            "c": 12,
+            "d": 13
+        })
+        config.update_values_by_arguments(
+            args={"subcommand": "a",
+                  "a": 10,
+                  "b": 20,
+                  "c": 120,
+                  "d": 130},
+            subcommands=("a", "b"),
+            command_name="subcommand")
+        self.assertEqual(config.subcommand, "a")
+        self.assertEqual(config.a.a, 10)
+        self.assertEqual(config.a.b, 20)
+        self.assertEqual(config.c, 120)
+        self.assertEqual(config.d, 130)
+        self.assertEqual(config.b.c, 3)
+        self.assertEqual(config.b.d, 4)
+        config.update_values_by_arguments(
+            args={"subcommand": "",
+                  "a": 11,
+                  "b": 21,
+                  "c": 12,
+                  "d": 13},
+            subcommands=("a", "b"),
+            command_name="subcommand")
+        self.assertEqual(config.subcommand, "")
+        self.assertEqual(config.a.a, 10)
+        self.assertEqual(config.a.b, 20)
+        self.assertEqual(config.c, 12)
+        self.assertEqual(config.d, 13)
+        self.assertEqual(config.b.c, 3)
+        self.assertEqual(config.b.d, 4)
+        config.update_values_by_arguments(
+            args={"subcommand": "b",
+                  "a": 110,
+                  "b": 210,
+                  "c": 120,
+                  "d": 130},
+            subcommands=("a", "b"),
+            command_name="subcommand")
+        self.assertEqual(config.subcommand, "b")
+        self.assertEqual(config.a.a, 10)
+        self.assertEqual(config.a.b, 20)
+        self.assertEqual(config.c, 12)
+        self.assertEqual(config.d, 13)
+        self.assertEqual(config.b.c, 120)
+        self.assertEqual(config.b.d, 130)
+
     def test_argument_parser(self):
         config = Config({"a": 1, "b": 2, "c": {"d": {"e": [1, 2, 3]}}})
         parser = config.argument_parser()
@@ -577,6 +636,47 @@ class TestConfig(unittest.TestCase):
         parser = config.argument_parser()
         args = parser.parse_args(["--c-d-e", "1", "2"])
         self.assertEqual(args.c_d_e, ["1", "2"])
+
+        config = Config({
+            "subcommand": "",
+            "command": "",
+            "logging": "INFO",
+            "c": 12,
+            "d": 13,
+            "a": {
+                "a": 1,
+                "b": 3
+            },
+            "b": {
+                "c": 3,
+                "d": 1
+            }
+        })
+        parser = config.argument_parser(
+            subcommands=("a", "b"), command_name="subcommand")
+        args = parser.parse_args([
+            "--logging", "DEBUG", "--command", "test", "a", "--a", "100",
+            "--b", "200"
+        ])
+        self.assertDictEqual(
+            vars(args), {
+                "logging": "DEBUG",
+                "a": 100,
+                "b": 200,
+                "d": 13,
+                "c": 12,
+                "subcommand": 'a',
+                "command": "test",
+            })
+        args = parser.parse_args(["b", "--c", "34", "--d", "435"])
+        self.assertDictEqual(
+            vars(args), {
+                "logging": "INFO",
+                "c": 34,
+                "d": 435,
+                "subcommand": "b",
+                "command": "",
+            })
 
     def test_update_values(self):
         config = Config({"a": 1, "b": {"c": 2}, "d": {"e": {"f": "hello"}}})
@@ -747,3 +847,58 @@ class TestConfig(unittest.TestCase):
         self.assertEqual(config.a, 23)
         self.assertEqual(config.c.d, "hell")
         self.assertEqual(config.b, 34)
+
+        schema = dict(origin.items())
+        schema["command"] = ""
+        schema["d"] = {"a": 23, "b": 45}
+        config = Config(schema)
+        config.update_values_by_argument_parser(
+            arguments=[
+                "--a", "23", "--b", "45", "c", "--d", "345", "--f", "456"
+            ],
+            config_name="config.file",
+            category="test",
+            subcommands=("c", "d"))
+        self.assertEqual(config.a, 23)
+        self.assertEqual(config.b, 45)
+        self.assertEqual(config.c.d, "345")
+        self.assertEqual(config.c.f, 456)
+        self.assertEqual(config.command, "c")
+        config.update_values_by_argument_parser(
+            arguments=[
+                "--a", "230", "--b", "450", "d", "--a", "345", "--b", "456"
+            ],
+            config_name="config.file",
+            category="test",
+            subcommands=("c", "d"))
+        self.assertEqual(config.a, 23)
+        self.assertEqual(config.b, 45)
+        self.assertEqual(config.c.d, "345")
+        self.assertEqual(config.c.f, 456)
+        self.assertEqual(config.d.a, 345)
+        self.assertEqual(config.d.b, 456)
+        self.assertEqual(config.command, "d")
+        config.update_values_by_argument_parser(
+            arguments=["--a", "230", "--b", "450", "d"],
+            config_name="config.file",
+            category="test",
+            subcommands=("c", "d"))
+        self.assertEqual(config.a, 23)
+        self.assertEqual(config.b, 45)
+        self.assertEqual(config.c.d, "345")
+        self.assertEqual(config.c.f, 456)
+        self.assertEqual(config.d.a, 345)
+        self.assertEqual(config.d.b, 456)
+        self.assertEqual(config.command, "d")
+        config.update_values_by_argument_parser(
+            arguments=["--a", "230", "--b", "450"],
+            config_name="config.file",
+            category="test",
+            subcommands=("c", "d"))
+        self.assertEqual(config.a, 230)
+        self.assertEqual(config.b, 450)
+        self.assertEqual(config.c.d, "345")
+        self.assertEqual(config.c.f, 456)
+        self.assertEqual(config.d.a, 345)
+        self.assertEqual(config.d.b, 456)
+        self.assertEqual(config.command, "d")
