@@ -261,32 +261,31 @@ class Config():
 
     def update_value_by_argument(self, argname, value, ignore_not_found=True):
         if isinstance(argname, str):
-            name = argname.split("_")
+            names = argname.split("_")
         else:
-            name = argname
-        name = list(filter(str, name))
-        if len(name) > 0:
-            level_name = ""
-            index = 0
-            while index < len(name):
-                if level_name:
-                    level_name += "_" + name[index]
-                else:
-                    level_name = name[index]
-                if level_name in self:
-                    break
-                index += 1
+            names = argname
+        names = [name for name in names]
+        if len(names) > 0:
+            test_name = ""
+            match_name = None
+            match_index = 0
+            for index, item in enumerate(names):
+                test_name = "{}_{}".format(test_name,
+                                           item) if test_name else item
+                if test_name in self:
+                    match_name = test_name
+                    match_index = index
 
-            if index < len(name):
-                attr = self.getattr(level_name, raw=True)
+            if match_name:
+                attr = self.getattr(match_name, raw=True)
                 if isinstance(attr, Item):
-                    if index == len(name) - 1:
-                        self.setattr(level_name, value)
+                    if match_index == len(names) - 1:
+                        self.setattr(match_name, value)
                         return
                 elif isinstance(attr, Config):
-                    if index < len(name) - 1:
+                    if match_index < len(names) - 1:
                         attr.update_value_by_argument(
-                            name[index + 1:],
+                            names[match_index + 1:],
                             value,
                             ignore_not_found=ignore_not_found)
                         return

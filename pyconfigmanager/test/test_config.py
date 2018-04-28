@@ -502,6 +502,12 @@ class TestConfig(unittest.TestCase):
             argname=["c", "d", "e"], value=67, ignore_not_found=False)
         self.assertEqual(config.c.d.e, 67)
 
+        config = Config({"a": {"b": 1}, "a_b": 3})
+        config.update_value_by_argument(
+            argname="a_b", value=12, ignore_not_found=False)
+        self.assertEqual(config.a.b, 1)
+        self.assertEqual(config.a_b, 12)
+
     def test_update_values_by_arguments(self):
         config = Config({"a": 12, "b": 13, "c": {"d": {"e": 45}}})
         config.update_values_by_arguments(
