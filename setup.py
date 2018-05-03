@@ -27,18 +27,6 @@ def get_scripts():
     return result
 
 
-def get_package_data():
-    directory = package_name
-    return [
-        filename
-        for ext in ("json", "yaml") for filename in glob.glob(
-            os.path.join(directory, "**", "*.{}".format(ext)), recursive=True)
-        if all(
-            re.match(os.path.join(directory, pattern, ".*"), filename) is None
-            for pattern in ("test", "tests"))
-    ]
-
-
 long_description = ''
 setup(
     name=package_name,
@@ -61,6 +49,9 @@ setup(
     ],
     scripts=get_scripts(),
     ext_modules=[],
-    package_data={package_name: get_package_data()},
+    package_data={
+        package_name: ["*.yaml", "*.json", "**/*.yaml", "**/*.json"]
+    },
+    exclude_package_data={package_name: ["test*", "tests*"]},
     dependency_links=dependency_links,
 )
