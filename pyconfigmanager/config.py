@@ -365,12 +365,17 @@ class Config():
                     filename="",
                     config_name="config.dump",
                     exit=True,
+                    ignores=["config"],
                     category=""):
         if not filename and config_name:
             filename = self.getattr(config_name, raw=False, name_slicer=".")
         if not filename:
             raise ValueError("no filename specified")
         values = self.values()
+        values = {
+            key: value
+            for key, value in values.items() if key not in ignores
+        }
         if category:
             values = {category: values}
         utils.dump_config(values, filename=filename)
