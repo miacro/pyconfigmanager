@@ -5,11 +5,8 @@ import glob
 import re
 version = None
 package_name = "pyconfigmanager"
-
-with open(
-        os.path.join(
-            os.path.dirname(__file__),
-            '{}/version.py'.format(package_name))) as version_file:
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
+with open('{}/version.py'.format(package_name)) as version_file:
     exec(version_file.read())
 
 requirements = [
@@ -24,17 +21,14 @@ dependency_links = []
 
 def get_scripts():
     result = []
-    for item in glob.glob(
-            os.path.join(
-                os.path.dirname(__file__), "{}/bin/*".format(package_name))):
+    for item in glob.glob("{}/bin/*".format(package_name)):
         if os.access(item, os.X_OK):
             result.append(item)
     return result
 
 
 def get_package_data():
-    directory = os.path.join(
-        os.path.dirname(os.path.abspath(__file__)), package_name)
+    directory = package_name
     return [
         filename
         for ext in ("json", "yaml") for filename in glob.glob(
