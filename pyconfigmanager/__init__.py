@@ -1,5 +1,7 @@
 from pyconfigmanager import utils
 from .config import Config
+import os
+from . import logging
 
 
 def getconfig(schema=[], values=[], **kwargs):
@@ -23,3 +25,18 @@ def normalizedict(data):
                 yield entry
         else:
             yield item
+
+
+DEFAULT_SCHEMA_FILE = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "schema.yaml")
+
+
+def getschemas(filenames=[DEFAULT_SCHEMA_FILE], category="schema",
+               excludes=[]):
+    result = {}
+    for _, item in enumerate(utils.load_config(filename=filenames)):
+        item = utils.get_item_by_category(
+            item, category=category, excludes=excludes)
+        result.update(item)
+
+    return result

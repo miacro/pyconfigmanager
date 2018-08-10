@@ -755,7 +755,7 @@ class TestConfig(unittest.TestCase):
             },
             "config": {
                 "file": ""
-            }
+            },
         })
         self.assertRaises(
             ValueError,
@@ -773,9 +773,6 @@ class TestConfig(unittest.TestCase):
                     "d": "123",
                     "f": 34
                 },
-                "config": {
-                    "file": ""
-                }
             }
         }])
         config.dump_config(filename=yamlfile, exit=False, category="")
@@ -787,9 +784,6 @@ class TestConfig(unittest.TestCase):
                 "d": "123",
                 "f": 34
             },
-            "config": {
-                "file": ""
-            }
         }])
 
         config.config.file = yamlfile
@@ -804,9 +798,6 @@ class TestConfig(unittest.TestCase):
                     "d": "123",
                     "f": 34
                 },
-                "config": {
-                    "file": yamlfile
-                }
             }
         }])
         os.remove(jsonfile)

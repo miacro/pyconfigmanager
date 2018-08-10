@@ -2,13 +2,11 @@ import logging
 import sys
 
 
-def logger_config(
-        logger=None,
-        name=None,
-        level=logging.INFO,
-        format="[%(asctime)s]:%(levelname)s:%(name)s:%(message)s",
-        propagate=True,
-):
+def config(logger=None,
+           name=None,
+           level=logging.INFO,
+           format="[%(asctime)s]:%(levelname)s:%(name)s:%(message)s",
+           propagate=True):
     if not logger or isinstance(logger, str):
         logger = logging.getLogger(logger)
     set_logger_level(logger=logger, level=level)

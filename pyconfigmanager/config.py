@@ -1,7 +1,7 @@
 from .item import Item
 from pyconfigmanager import utils
 import logging
-from .logging_config import get_logging_level
+from .logging import get_logging_level
 import argparse
 import sys
 
