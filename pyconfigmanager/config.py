@@ -319,21 +319,26 @@ class Config():
     def update_values_by_argument_parser(self,
                                          parser=None,
                                          arguments=None,
-                                         config_name="config.file",
                                          subcommands=(),
-                                         **kwargs):
+                                         valuefile_config="config.file",
+                                         valuefile_pickname="",
+                                         valuefile_excludes=[]):
         parser = self.argument_parser(parser=parser, subcommands=subcommands)
         args = parser.parse_args(arguments)
         # update values to get prog config filename
         self.update_values_by_arguments(args, subcommands=subcommands)
-        if not config_name:
+        if not valuefile_config:
             return args
-        attr = self.getattr(config_name, raw=False, name_slicer=".")
+        attr = self.getattr(valuefile_config, raw=False, name_slicer=".")
         if not attr:
             return args
-        self.update_values_by_file(filename=attr, **kwargs)
+        for values in utils.load_config(filename=attr):
+            self.update_values(utils.pickitems(
+                values,
+                pickname=valuefile_pickname,
+                excludes=valuefile_excludes))
         # force args overrides prog_config
-        parser = self.argument_parser(subcommands=subcommands)
+        parser = self.argument_parser(subcommands=subcommands,)
         args = parser.parse_args(arguments)
         self.update_values_by_arguments(args, subcommands=subcommands)
         return args
@@ -350,25 +355,15 @@ class Config():
             elif isinstance(attr, Item):
                 self.setattr(name, values[name], raw=False)
 
-    def update_values_by_file(self, filename=[], **kwargs):
-        if isinstance(filename, str):
-            filenames = [filename]
-        else:
-            filenames = filename
-
-        for filename in filenames:
-            for values in utils.load_config(filename=filename):
-                self.update_values(
-                    values=utils.get_item_by_category(values, **kwargs))
-
     def dump_config(self,
                     filename="",
-                    config_name="config.dump",
+                    filename_config="config.dump",
                     exit=True,
                     ignores=["config"],
-                    category=""):
-        if not filename and config_name:
-            filename = self.getattr(config_name, raw=False, name_slicer=".")
+                    dumpname=""):
+        if not filename and filename_config:
+            filename = self.getattr(
+                filename_config, raw=False, name_slicer=".")
         if not filename:
             raise ValueError("no filename specified")
         values = self.values()
@@ -376,8 +371,8 @@ class Config():
             key: value
             for key, value in values.items() if key not in ignores
         }
-        if category:
-            values = {category: values}
+        if dumpname:
+            values = {dumpname: values}
         utils.dump_config(values, filename=filename)
         if exit:
             sys.exit(0)

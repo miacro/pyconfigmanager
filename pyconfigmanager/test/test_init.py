@@ -11,14 +11,14 @@ class TestGlobal(unittest.TestCase):
         valuesfile = os.path.join(filedir, "values.json")
         schema = {"test": {"a": 12, "b": {"c": 23, "d": "hello"}}}
         values = {"test": {"a": "hello", "b": 56, "c": {"d": 67, "e": "hell"}}}
-        config = getconfig(schema=schemafile, category="test")
+        config = getconfig(schema=schemafile, pickname="test")
         self.assertEqual(config.a, None)
         self.assertEqual(config.b, 12)
         self.assertEqual(config.c.d, 12)
         self.assertEqual(config.c.e, "hello")
 
         config = getconfig(
-            schema=schemafile, values=valuesfile, category="test")
+            schema=schemafile, values=valuesfile, pickname="test")
         self.assertEqual(config.a, "text")
         self.assertEqual(config.b, 90)
         self.assertEqual(config.c.d, 76)
@@ -27,7 +27,7 @@ class TestGlobal(unittest.TestCase):
         config = getconfig(
             schema=[schema, schemafile],
             values=[valuesfile, values],
-            category="test")
+            pickname="test")
         self.assertEqual(config.a, "hello")
         self.assertEqual(config.b, 56)
         self.assertEqual(config.c.d, 67)

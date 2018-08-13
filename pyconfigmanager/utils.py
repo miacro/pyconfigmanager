@@ -5,19 +5,25 @@ import os
 import json as JSON
 
 
-def get_item_by_category(item, category="", excludes=["schema"]):
-    result = dict(item.items())
-    if category:
-        if category in result:
-            result = result[category]
+def pickitems(data, pickname="", excludes=["schema"]):
+    if isinstance(pickname, str):
+        names = [item for item in pickname.split(".") if item]
+    elif isinstance(pickname, list):
+        names = pickname
+    else:
+        names = []
+    names = [item for item in names if item]
+    result = dict(data.items())
+    for name in names:
+        if name in result:
+            result = result[name]
         else:
             return {}
+        if not isinstance(result, dict):
+            return {}
     if not excludes:
-        return result
-    for exclude in excludes:
-        if exclude in result:
-            del result[exclude]
-    return result
+        excludes = []
+    return {key: value for key, value in result.items() if key not in excludes}
 
 
 def typename(type_instance):

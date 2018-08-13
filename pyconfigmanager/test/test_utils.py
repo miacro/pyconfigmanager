@@ -1,6 +1,6 @@
 import unittest
 from pyconfigmanager.utils import typename, locate_type, convert_type
-from pyconfigmanager.utils import get_item_by_category
+from pyconfigmanager.utils import pickitems
 from pyconfigmanager.utils import load_yaml, load_json, dump_json, dump_yaml
 from pyconfigmanager.utils import detect_filetype
 from pyconfigmanager.utils import load_config
@@ -38,22 +38,26 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(convert_type("hello", int), None)
         self.assertEqual(convert_type(12.34, list), None)
 
-    def test_get_item_by_category(self):
+    def test_pickitems(self):
         item = {"a": {"b": 1, "c": 3}, "d": 56}
-        compare_item = get_item_by_category(
-            item, category="", excludes=["b", "c"])
+        compare_item = pickitems(item, pickname="", excludes=["b", "c"])
         self.assertDictEqual(compare_item, item)
         self.assertDictEqual(
-            get_item_by_category(item, category="a", excludes=["g"]),
-            item["a"])
+            pickitems(item, pickname="a", excludes=["g"]), item["a"])
         self.assertDictEqual(
-            get_item_by_category(item, category="a", excludes=["b"]), {
+            pickitems(item, pickname="a", excludes=["b"]), {
                 "c": 3
             })
         self.assertDictEqual(
-            get_item_by_category(item, category="a", excludes=["b", "c"]), {})
+            pickitems(item, pickname="a", excludes=["b", "c"]), {})
+        self.assertDictEqual(pickitems(item, pickname="g", excludes=[]), {})
+        self.assertDictEqual(pickitems(item, pickname="a.b"), {})
         self.assertDictEqual(
-            get_item_by_category(item, category="g", excludes=[]), {})
+            pickitems(item, pickname="...a..."), {
+                "b": 1,
+                "c": 3
+            })
+        self.assertDictEqual(pickitems(item, pickname=["a"]), {"b": 1, "c": 3})
 
     def test_load_yaml(self):
         content1 = """

@@ -714,33 +714,6 @@ class TestConfig(unittest.TestCase):
         self.assertEqual(config.b.c, 5)
         self.assertEqual(config.d.e.f, "{'g': 12}")
 
-    def test_update_values_by_file(self):
-        filedir = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)), "files")
-        jsonfile = os.path.join(filedir, "1.json")
-        yamlfile = os.path.join(filedir, "1.yaml")
-        config = Config({"a": 1, "b": 2, "c": {"d": "123", "f": 34}})
-        config.update_values_by_file(filename=jsonfile)
-        self.assertEqual(config.a, 12)
-        self.assertEqual(config.b, 34)
-        self.assertEqual(config.c.d, "hello")
-        self.assertEqual(config.c.f, 34)
-        config = Config({"a": 1, "b": 2, "c": {"d": "123", "f": 34}})
-        config.update_values_by_file(filename=yamlfile)
-        self.assertEqual(config.a, 12)
-        self.assertEqual(config.b, 34)
-        self.assertEqual(config.c.d, "hello")
-        self.assertEqual(config.c.f, 34)
-        config = Config({"a": 1, "b": 2, "c": {"d": "123", "f": 34}})
-        config.update_values_by_file(
-            filename=os.path.join(filedir, "2.yaml"),
-            category="test",
-            excludes=["a", "b"])
-        self.assertEqual(config.a, 1)
-        self.assertEqual(config.b, 2)
-        self.assertEqual(config.c.d, "hello")
-        self.assertEqual(config.c.f, 34)
-
     def test_dump_config(self):
         with tempfile.NamedTemporaryFile("wt") as temp_file:
             pass
@@ -761,9 +734,9 @@ class TestConfig(unittest.TestCase):
             ValueError,
             config.dump_config,
             filename="",
-            config_name="config.file",
+            filename_config="config.file",
             exit=False)
-        config.dump_config(filename=jsonfile, exit=False, category="test")
+        config.dump_config(filename=jsonfile, exit=False, dumpname="test")
         result = [item for item in utils.load_json(filenames=jsonfile)]
         self.assertListEqual(result, [{
             "test": {
@@ -775,7 +748,7 @@ class TestConfig(unittest.TestCase):
                 },
             }
         }])
-        config.dump_config(filename=yamlfile, exit=False, category="")
+        config.dump_config(filename=yamlfile, exit=False, dumpname="")
         result = [item for item in utils.load_yaml(filenames=yamlfile)]
         self.assertListEqual(result, [{
             "a": 1,
@@ -788,7 +761,7 @@ class TestConfig(unittest.TestCase):
 
         config.config.file = yamlfile
         config.dump_config(
-            config_name="config.file", exit=False, category="12")
+            filename_config="config.file", exit=False, dumpname="12")
         result = [item for item in utils.load_yaml(filenames=yamlfile)]
         self.assertListEqual(result, [{
             "12": {
@@ -820,7 +793,7 @@ class TestConfig(unittest.TestCase):
         }
         config = Config(origin)
         config.update_values_by_argument_parser(
-            arguments=["--a", "23", "--c-d", "hello"], config_name="")
+            arguments=["--a", "23", "--c-d", "hello"], valuefile_config="")
         self.assertEqual(config.a, 23)
         self.assertEqual(config.c.d, "hello")
 
@@ -829,8 +802,8 @@ class TestConfig(unittest.TestCase):
             arguments=[
                 "--a", "23", "--c-d", "hell", "--config-file", configfile
             ],
-            config_name="config.file",
-            category="test")
+            valuefile_config="config.file",
+            valuefile_pickname="test")
         self.assertEqual(config.a, 23)
         self.assertEqual(config.c.d, "hell")
         self.assertEqual(config.b, 34)
@@ -839,8 +812,8 @@ class TestConfig(unittest.TestCase):
         config.config.file = configfile
         config.update_values_by_argument_parser(
             arguments=["--a", "23", "--c-d", "hell"],
-            config_name="config.file",
-            category="test")
+            valuefile_config="config.file",
+            valuefile_pickname="test")
         self.assertEqual(config.a, 23)
         self.assertEqual(config.c.d, "hell")
         self.assertEqual(config.b, 34)
@@ -853,8 +826,8 @@ class TestConfig(unittest.TestCase):
             arguments=[
                 "--a", "23", "--b", "45", "c", "--d", "345", "--f", "456"
             ],
-            config_name="config.file",
-            category="test",
+            valuefile_config="config.file",
+            valuefile_pickname="test",
             subcommands=("c", "d"))
         self.assertEqual(config.a, 23)
         self.assertEqual(config.b, 45)
@@ -865,8 +838,8 @@ class TestConfig(unittest.TestCase):
             arguments=[
                 "--a", "230", "--b", "450", "d", "--a", "345", "--b", "456"
             ],
-            config_name="config.file",
-            category="test",
+            valuefile_config="config.file",
+            valuefile_pickname="test",
             subcommands=("c", "d"))
         self.assertEqual(config.a, 23)
         self.assertEqual(config.b, 45)
@@ -877,8 +850,8 @@ class TestConfig(unittest.TestCase):
         self.assertEqual(config.command, "d")
         config.update_values_by_argument_parser(
             arguments=["--a", "230", "--b", "450", "d"],
-            config_name="config.file",
-            category="test",
+            valuefile_config="config.file",
+            valuefile_pickname="test",
             subcommands=("c", "d"))
         self.assertEqual(config.a, 23)
         self.assertEqual(config.b, 45)
@@ -889,8 +862,8 @@ class TestConfig(unittest.TestCase):
         self.assertEqual(config.command, "d")
         config.update_values_by_argument_parser(
             arguments=["--a", "230", "--b", "450"],
-            config_name="config.file",
-            category="test",
+            valuefile_config="config.file",
+            valuefile_pickname="test",
             subcommands=("c", "d"))
         self.assertEqual(config.a, 230)
         self.assertEqual(config.b, 450)
