@@ -553,7 +553,7 @@ class TestConfig(unittest.TestCase):
                   "c": 120,
                   "d": 130},
             subcommands=("a", "b"),
-            command_name="subcommand")
+            command_attrname="subcommand")
         self.assertEqual(config.subcommand, "a")
         self.assertEqual(config.a.a, 10)
         self.assertEqual(config.a.b, 20)
@@ -568,7 +568,7 @@ class TestConfig(unittest.TestCase):
                   "c": 12,
                   "d": 13},
             subcommands=("a", "b"),
-            command_name="subcommand")
+            command_attrname="subcommand")
         self.assertEqual(config.subcommand, "")
         self.assertEqual(config.a.a, 10)
         self.assertEqual(config.a.b, 20)
@@ -583,7 +583,7 @@ class TestConfig(unittest.TestCase):
                   "c": 120,
                   "d": 130},
             subcommands=("a", "b"),
-            command_name="subcommand")
+            command_attrname="subcommand")
         self.assertEqual(config.subcommand, "b")
         self.assertEqual(config.a.a, 10)
         self.assertEqual(config.a.b, 20)
@@ -636,12 +636,49 @@ class TestConfig(unittest.TestCase):
                             "nargs": 2
                         }
                     }
-                }
+                },
+                "f": 12,
             }
         })
         parser = config.argument_parser()
         args = parser.parse_args(["--c-d-e", "1", "2"])
         self.assertEqual(args.c_d_e, ["1", "2"])
+
+        parser = config.argument_parser(subcommands={"c": {"d": True}})
+        args = parser.parse_args(["c", "--f", "34", "d", "--e", "45", "23"])
+        self.assertEqual(args.e, ["45", "23"])
+        self.assertEqual(args.command, "c.d")
+        self.assertEqual(args.f, 34)
+
+        config = Config({
+            "c": {
+                "d": {
+                    "e": {
+                        "$type": list,
+                        "argparse": {
+                            "nargs": 2
+                        }
+                    }
+                }
+            },
+            "a": {
+                "d": {
+                    "e": 24
+                }
+            }
+        })
+        parser = config.argument_parser(subcommands={
+            "c": {
+                "d": True
+            },
+            "a": {
+                "d": True
+            }
+        })
+        args = parser.parse_args(["c", "d", "--e", "45", "23"])
+        self.assertEqual(args.e, ["45", "23"])
+        args = parser.parse_args(["a", "d", "--e", "78"])
+        self.assertEqual(args.e, 78)
 
         config = Config({
             "subcommand": "",
@@ -659,7 +696,7 @@ class TestConfig(unittest.TestCase):
             }
         })
         parser = config.argument_parser(
-            subcommands=("a", "b"), command_name="subcommand")
+            subcommands=("a", "b"), command_attrname="subcommand")
         args = parser.parse_args([
             "--logging", "DEBUG", "--command", "test", "a", "--a", "100",
             "--b", "200"
@@ -871,4 +908,53 @@ class TestConfig(unittest.TestCase):
         self.assertEqual(config.c.f, 456)
         self.assertEqual(config.d.a, 345)
         self.assertEqual(config.d.b, 456)
-        self.assertEqual(config.command, "d")
+        self.assertEqual(config.command, None)
+
+        schema = dict(origin.items())
+        schema.update({
+            "e": {
+                "d": 23,
+                "f": {
+                    "h": "345"
+                }
+            },
+            "g": {
+                "d": "qwe",
+                "f": {
+                    "h": {
+                        "i": 567
+                    },
+                    "d": "rrrr",
+                }
+            },
+            "command": "",
+        })
+        config = Config(schema)
+        subcommands = {"e": {"f": True}, "g": {"f": {"h": True}}}
+        config.update_values_by_argument_parser(
+            arguments=["e", "--d", "56", "f", "--h", "dddd"],
+            subcommands=subcommands)
+        self.assertEqual(config.e.d, 56)
+        self.assertEqual(config.e.f.h, "dddd")
+        self.assertEqual(config.command, "e.f")
+
+        config = Config(schema)
+        config.update_values_by_argument_parser(
+            arguments=["g", "--d", "567", "f", "h", "--i", "123"],
+            subcommands=subcommands)
+        self.assertEqual(config.command, "g.f.h")
+        self.assertEqual(config.g.f.h.i, 123)
+        # value of args.g.f.d reset by the default value of config.g.f.d
+        self.assertEqual(config.g.f.d, "rrrr")
+        self.assertEqual(config.g.d, "qwe")
+
+        config = Config(schema)
+        config.update_values_by_argument_parser(
+            arguments=[
+                "g", "--d", "567", "f", "--d", "123", "h", "--i", "123"
+            ],
+            subcommands=subcommands)
+        self.assertEqual(config.command, "g.f.h")
+        self.assertEqual(config.g.f.h.i, 123)
+        self.assertEqual(config.g.f.d, "123")
+        self.assertEqual(config.g.d, "qwe")

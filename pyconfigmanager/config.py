@@ -215,22 +215,27 @@ class Config():
 
     def argument_parser(self,
                         parser=None,
-                        prefix="",
                         subcommands=(),
-                        command_name="command"):
+                        ignores=(),
+                        command_attrname="command",
+                        parentnames=[],
+                        argprefix="",):
+        subcommands = normalize_subcommands(subcommands)
         if not parser:
             parser = argparse.ArgumentParser(
                 formatter_class=argparse.ArgumentDefaultsHelpFormatter,
                 description="")
         if subcommands:
             subparsers = parser.add_subparsers(
-                title="subcommands", help="subcommands")
+                title="subcommands", help="subcommands", dest=command_attrname)
         else:
-            subcommands = ()
+            subcommands = {}
             subparsers = None
 
         for attr_name, attr in self.items(raw=True):
-            if attr_name == command_name:
+            if attr_name == command_attrname:
+                continue
+            if attr_name in ignores:
                 continue
             if attr_name in subcommands:
                 subparser = subparsers.add_parser(
@@ -238,15 +243,22 @@ class Config():
                     formatter_class=argparse.ArgumentDefaultsHelpFormatter,
                     description=attr_name,
                     help=attr_name)
-                subparser.set_defaults(**{command_name: attr_name})
+                arg_name = "".join(
+                    ["{}.".format(name) for name in parentnames])
+                arg_name += attr_name
+                subparser.set_defaults(
+                    **{command_attrname: arg_name})
                 self.getattr(
-                    attr_name, raw=True).argument_parser(parser=subparser)
+                    attr_name, raw=True).argument_parser(
+                        parser=subparser,
+                        subcommands=subcommands[attr_name],
+                        parentnames=parentnames + [attr_name])
                 continue
 
-            arg_name = attr_name if not prefix else "{}-{}".format(
-                prefix, attr_name)
+            arg_name = attr_name if not argprefix else "{}-{}".format(
+                argprefix, attr_name)
             if isinstance(attr, Config):
-                attr.argument_parser(parser=parser, prefix=arg_name)
+                attr.argument_parser(parser=parser, argprefix=arg_name)
             elif isinstance(attr, Item):
                 if attr.argparse is False:
                     continue
@@ -296,24 +308,39 @@ class Config():
     def update_values_by_arguments(self,
                                    args,
                                    subcommands=(),
-                                   command_name="command",
+                                   command_attrname="command",
                                    **kwargs):
+        subcommands = normalize_subcommands(subcommands)
         if not isinstance(args, dict):
             args = vars(args)
 
-        if (subcommands and command_name in args
-                and args[command_name] in subcommands):
-            subconfig = self.getattr(args[command_name], raw=True)
+        if (subcommands and (command_attrname in args) and
+                args[command_attrname]):
+            command_names = [
+                name for name in args[command_attrname].split(".") if name]
+            subconfigs = [self]
+            for name in command_names:
+                if name not in subcommands:
+                    subconfigs = []
+                    break
+                subconfigs.append(subconfigs[-1].getattr(name, raw=True))
+                subcommands = subcommands[name]
+            subconfigs = subconfigs[1:]
         else:
-            subconfig = None
+            subconfigs = []
+        subconfigs.reverse()
         for arg_name in args:
-            if subconfig:
+            argfound = False
+            for index, subconfig in enumerate(subconfigs):
                 try:
                     subconfig.update_value_by_argument(
                         arg_name, args[arg_name], ignore_not_found=False)
-                    continue
+                    argfound = True
+                    break
                 except AttributeError:
-                    pass
+                    argfound = False
+            if argfound:
+                continue
             self.update_value_by_argument(arg_name, args[arg_name], **kwargs)
 
     def update_values_by_argument_parser(self,
@@ -376,3 +403,11 @@ class Config():
         utils.dump_config(values, filename=filename)
         if exit:
             sys.exit(0)
+
+
+def normalize_subcommands(subcommands):
+    if isinstance(subcommands, dict):
+        return subcommands
+    elif isinstance(subcommands, list) or isinstance(subcommands, tuple):
+        return {name: True for name in subcommands}
+    return {}
