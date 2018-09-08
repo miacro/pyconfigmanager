@@ -1,4 +1,4 @@
-from .item import Item
+from .options import Options
 from pyconfigmanager import utils
 import logging
 from .logging import get_logging_level
@@ -16,7 +16,7 @@ class Config():
         self.update_schema(schema=schema, merge=False)
 
     def __new__(self, schema={}):
-        if isinstance(schema, Item):
+        if isinstance(schema, Options):
             schema = vars(schema)
         elif isinstance(schema, dict):
             if any([
@@ -33,7 +33,7 @@ class Config():
         if (("value" in schema) and (schema["value"] is not None)):
             if (("type" not in schema) or (schema["type"] is None)):
                 schema["type"] = utils.typename(type(schema["value"]))
-        return Item(**schema)
+        return Options(**schema)
 
     def __iter__(self):
         for name in self.__dict__:
@@ -70,22 +70,22 @@ class Config():
             return attr
         else:
             attr = super().__getattribute__(name)
-            if (not raw) and isinstance(attr, Item):
+            if (not raw) and isinstance(attr, Options):
                 return attr.value
             return attr
 
     def setattr(self, name, value, raw=False):
         if not raw:
             attr = self.getattr(name, raw=True)
-            if (isinstance(attr, Item)):
+            if (isinstance(attr, Options)):
                 attr.value = value
             else:
                 raise AttributeError("{} {} {}".format(
-                    "only attribute 'value' of 'Item' can be updated",
+                    "only attribute 'value' of 'Options' can be updated",
                     "when raw=False,", "while attribute: '{}'".format(
                         type(attr).__name__)))
         else:
-            if isinstance(value, Item) or isinstance(value, Config):
+            if isinstance(value, Options) or isinstance(value, Config):
                 attr_value = value
             else:
                 attr_value = Config(value)
@@ -103,7 +103,7 @@ class Config():
             attr = self.getattr(name, raw=True)
             if isinstance(attr, Config):
                 result[name] = attr.values()
-            elif isinstance(attr, Item):
+            elif isinstance(attr, Options):
                 result[name] = attr.value
             else:
                 result[name] = attr
@@ -118,7 +118,7 @@ class Config():
                 result[name_item] = self.schema(name_item)
             return result
         attr = self.getattr(name, raw=True)
-        if isinstance(attr, Item):
+        if isinstance(attr, Options):
             return {
                 "{}{}".format(Config.ITEM_INDICATOR, key): value
                 for key, value in vars(attr).items()
@@ -142,11 +142,11 @@ class Config():
                 self.setattr(name, schema[name], raw=True)
             attr = self.getattr(name, raw=True)
             init_attr = Config.__new__(Config, schema[name])
-            if isinstance(attr, Item) and isinstance(init_attr, Item):
+            if isinstance(attr, Options) and isinstance(init_attr, Options):
                 attr.update_values(values=vars(init_attr), merge=merge)
-            elif isinstance(attr, Item) and isinstance(init_attr, Config):
+            elif isinstance(attr, Options) and isinstance(init_attr, Config):
                 self.setattr(name, schema[name], raw=True)
-            elif isinstance(attr, Config) and isinstance(init_attr, Item):
+            elif isinstance(attr, Config) and isinstance(init_attr, Options):
                 self.setattr(name, schema[name], raw=True)
             elif isinstance(attr, Config) and isinstance(init_attr, Config):
                 attr.update_schema(schema[name], merge=merge)
@@ -182,7 +182,7 @@ class Config():
                     attr.assert_values(
                         schema=schema[attr_name], name=show_name)
             else:
-                attr.assert_value(item=check_attr)
+                attr.assert_value(options=check_attr)
 
     def logging_values(self, schema=None, verbosity="INFO", name=""):
         if not schema:
@@ -195,7 +195,7 @@ class Config():
             else:
                 show_name = attr_name
             attr = self.getattr(attr_name, raw=True)
-            if isinstance(attr, Item):
+            if isinstance(attr, Options):
                 logging.log(
                     get_logging_level(verbosity), "{}: {}".format(
                         show_name, attr.value))
@@ -265,10 +265,10 @@ class Config():
                 argprefix, attr_name)
             if isinstance(attr, Config):
                 attr.argument_parser(parser=parser, argprefix=arg_name)
-            elif isinstance(attr, Item):
-                if attr.argparse is False:
+            elif isinstance(attr, Options):
+                if attr.argoptions False:
                     continue
-                options = attr.argparse_options()
+                options = attr.argument_options()
                 if "dest" in options:
                     del options["dest"]
                 parser.add_argument(
@@ -296,7 +296,7 @@ class Config():
 
             if match_name:
                 attr = self.getattr(match_name, raw=True)
-                if isinstance(attr, Item):
+                if isinstance(attr, Options):
                     if match_index == len(names) - 1:
                         self.setattr(match_name, value)
                         return
@@ -385,7 +385,7 @@ class Config():
                         "'values[{}]' == '{}' is not instance of 'dict'".
                         format(name, values[name]))
                 attr.update_values(values[name])
-            elif isinstance(attr, Item):
+            elif isinstance(attr, Options):
                 self.setattr(name, values[name], raw=False)
 
     def dump_config(self,

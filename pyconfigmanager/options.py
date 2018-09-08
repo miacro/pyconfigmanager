@@ -1,7 +1,7 @@
 from .utils import typename, locate_type, convert_type
 
 
-class BasicItem():
+class BasicOptions():
     def __init__(self, names=[], **kwargs):
         for name in names:
             super().__setattr__(name, None)
@@ -22,7 +22,7 @@ class BasicItem():
                 setattr(self, name, values[name])
 
 
-class ArgparseItem(BasicItem):
+class ArgumentOptions(BasicOptions):
     def __init__(self, **kwargs):
         super().__init__([
             "nargs",
@@ -40,18 +40,18 @@ class ArgparseItem(BasicItem):
         ], **kwargs)
 
 
-class Item(BasicItem):
+class Options(BasicOptions):
     def __init__(self, **kwargs):
         super().__init__(
-            ["type", "value", "required", "min", "max", "help", "argparse"],
+            ["type", "value", "required", "min", "max", "help", "argoptions"],
             **kwargs)
 
     def __setattr__(self, name, value):
-        if name == "argparse":
-            if isinstance(value, ArgparseItem):
+        if name == "argoptions":
+            if isinstance(value, ArgumentOptions):
                 pass
             elif isinstance(value, dict):
-                value = ArgparseItem(**value)
+                value = ArgumentOptions(**value)
             else:
                 value = bool(value)
         if name == "type" and value is not None:
@@ -72,31 +72,31 @@ class Item(BasicItem):
 
         return super().__setattr__(name, value)
 
-    def argparse_options(self):
-        argparseitem = ArgparseItem(
+    def argument_options(self):
+        argoptions = ArgumentOptions(
             type=self.type, default=self.value, help=self.help or " ")
-        options = vars(argparseitem)
+        options = vars(argoptions)
 
-        if isinstance(self.argparse, ArgparseItem):
+        if isinstance(self.argoptions, ArgumentOptions):
             options.update({
                 key: value
-                for key, value in vars(self.argparse).items()
+                for key, value in vars(self.argoptions).items()
                 if value is not None
             })
         if self.type:
             if issubclass(locate_type(self.type), list):
                 options["nargs"] = "*"
                 options["type"] = None
-                if isinstance(self.argparse, ArgparseItem):
-                    if self.argparse.nargs is not None:
-                        options["nargs"] = self.argparse.nargs
-                    if self.argparse.type is not None:
-                        options["type"] = self.argparse.type
+                if isinstance(self.argoptions, ArgumentOptions):
+                    if self.argoptions.nargs is not None:
+                        options["nargs"] = self.argoptions.nargs
+                    if self.argoptions.type is not None:
+                        options["type"] = self.argoptions.type
             elif issubclass(locate_type(self.type), bool):
                 options["type"] = str2bool
-                if isinstance(self.argparse, ArgparseItem):
-                    if self.argparse.type is not None:
-                        options["type"] = self.argparse.type
+                if isinstance(self.argoptions, ArgumentOptions):
+                    if self.argoptions.type is not None:
+                        options["type"] = self.argoptions.type
 
         if options["action"]:
             options["type"] = None
@@ -114,28 +114,28 @@ class Item(BasicItem):
         }
         return options
 
-    def assert_value(self, item=None):
-        if item is None:
-            item = self
+    def assert_value(self, options=None):
+        if options is None:
+            options = self
         else:
-            if not isinstance(item, Item):
-                item = Item(**item)
-        class_name = type(item).__name__
-        if item.required:
+            if not isinstance(options, Options):
+                options = Options(**options)
+        class_name = type(options).__name__
+        if options.required:
             assert self.value is not None, (
                 "'{}' object: attribute 'value' required".format(class_name))
-        if item.type is not None:
-            assert isinstance(self.value, locate_type(item.type)), (
+        if options.type is not None:
+            assert isinstance(self.value, locate_type(options.type)), (
                 "'{}' object: attribute 'value': '{}' is not type '{}'".format(
-                    class_name, self.value, item.type))
-        if item.min is not None:
-            assert self.value >= item.min, (
+                    class_name, self.value, options.type))
+        if options.min is not None:
+            assert self.value >= options.min, (
                 "'{}' object: attribute 'value': '{}' required >= {}".format(
-                    class_name, self.value, item.min))
-        if item.max is not None:
-            assert self.value <= item.max, (
+                    class_name, self.value, options.min))
+        if options.max is not None:
+            assert self.value <= options.max, (
                 "'{}' object: attribute 'value': '{}' required <= {}".format(
-                    class_name, self.value, item.max))
+                    class_name, self.value, options.max))
 
 
 def str2bool(value):

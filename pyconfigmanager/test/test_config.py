@@ -1,6 +1,6 @@
 import unittest
 from pyconfigmanager.config import Config
-from pyconfigmanager.item import Item
+from pyconfigmanager.options import Options
 from pyconfigmanager import utils
 import os
 import tempfile
@@ -9,34 +9,34 @@ import tempfile
 class TestConfig(unittest.TestCase):
     def test_new(self):
         config = Config(12)
-        self.assertIsInstance(config, Item)
+        self.assertIsInstance(config, Options)
         self.assertEqual(config.type, "int")
         self.assertEqual(config.value, 12)
 
         config = Config([1, 2, 3])
-        self.assertIsInstance(config, Item)
+        self.assertIsInstance(config, Options)
         self.assertEqual(config.type, "list")
         self.assertEqual(config.value, [1, 2, 3])
 
         config = Config({"$type": str, "value": 12})
-        self.assertIsInstance(config, Item)
+        self.assertIsInstance(config, Options)
         self.assertEqual(config.type, "str")
         self.assertEqual(config.value, "12")
 
         config = Config({"type": "str", "$value": [1, 2, 3]})
-        self.assertIsInstance(config, Item)
+        self.assertIsInstance(config, Options)
         self.assertEqual(config.type, "str")
         self.assertEqual(config.value, "[1, 2, 3]")
 
         config = Config({"a": 1, "b": 2})
         config = Config(schema=config)
-        self.assertIsInstance(config, Item)
+        self.assertIsInstance(config, Options)
         self.assertEqual(config.type, "pyconfigmanager.config.Config")
         self.assertEqual(config.value.a, 1)
         self.assertEqual(config.value.b, 2)
-        item = Item(value=56.8)
+        item = Options(value=56.8)
         config = Config(item)
-        self.assertIsInstance(config, Item)
+        self.assertIsInstance(config, Options)
         self.assertEqual(config.type, "float")
         self.assertEqual(config.value, 56.8)
 
@@ -66,41 +66,41 @@ class TestConfig(unittest.TestCase):
         })
         self.assertIsInstance(config, Config)
 
-        self.assertIsInstance(config.getattr("type", raw=True), Item)
+        self.assertIsInstance(config.getattr("type", raw=True), Options)
         self.assertEqual(config.getattr("type", raw=True).type, "str")
         self.assertEqual(config.getattr("type", raw=True).value, "str")
 
-        self.assertIsInstance(config.getattr("value", raw=True), Item)
+        self.assertIsInstance(config.getattr("value", raw=True), Options)
         self.assertEqual(config.getattr("value", raw=True).type, "int")
         self.assertEqual(config.getattr("value", raw=True).value, 12)
 
-        self.assertIsInstance(config.getattr("none", raw=True), Item)
+        self.assertIsInstance(config.getattr("none", raw=True), Options)
         self.assertEqual(config.getattr("none", raw=True).type, None)
         self.assertEqual(config.getattr("none", raw=True).value, None)
 
-        self.assertIsInstance(config.getattr("item", raw=True), Item)
+        self.assertIsInstance(config.getattr("item", raw=True), Options)
         self.assertEqual(config.getattr("item", raw=True).type, "str")
         self.assertEqual(config.getattr("item", raw=True).value, "123")
         self.assertEqual(config.getattr("item", raw=True).max, "1000")
 
         self.assertIsInstance(config.sub, Config)
         self.assertIsInstance(config.sub.a, Config)
-        self.assertIsInstance(config.sub.a.getattr("c", raw=True), Item)
+        self.assertIsInstance(config.sub.a.getattr("c", raw=True), Options)
         self.assertEqual(config.sub.a.getattr("c", raw=True).type, "int")
         self.assertEqual(config.sub.a.getattr("c", raw=True).value, 12)
-        self.assertIsInstance(config.sub.a.getattr("d", raw=True), Item)
+        self.assertIsInstance(config.sub.a.getattr("d", raw=True), Options)
         self.assertEqual(config.sub.a.getattr("d", raw=True).type, "list")
         self.assertEqual(config.sub.a.getattr("d", raw=True).value, [1, 2, 3])
-        self.assertIsInstance(config.sub.a.getattr("e", raw=True), Item)
+        self.assertIsInstance(config.sub.a.getattr("e", raw=True), Options)
         self.assertEqual(config.sub.a.getattr("e", raw=True).type, "int")
         self.assertEqual(config.sub.a.getattr("e", raw=True).value, None)
 
         self.assertIsInstance(config.sub.a.f, Config)
-        self.assertIsInstance(config.sub.a.f.getattr("end", raw=True), Item)
+        self.assertIsInstance(config.sub.a.f.getattr("end", raw=True), Options)
         self.assertEqual(config.sub.a.f.getattr("end", raw=True).type, "int")
         self.assertEqual(config.sub.a.f.getattr("end", raw=True).value, 123)
 
-        self.assertIsInstance(config.sub.getattr("b", raw=True), Item)
+        self.assertIsInstance(config.sub.getattr("b", raw=True), Options)
         self.assertEqual(config.sub.getattr("b", raw=True).type, "str")
         self.assertEqual(config.sub.getattr("b", raw=True).value, "hello")
 
@@ -138,17 +138,17 @@ class TestConfig(unittest.TestCase):
         self.assertEqual(config.c.getattr("d", raw=False), 12)
         self.assertEqual(config.c.e.f.getattr("g", raw=False), 34)
 
-        self.assertIsInstance(config.getattr("a", raw=True), Item)
+        self.assertIsInstance(config.getattr("a", raw=True), Options)
         self.assertEqual(config.getattr("a", raw=True).type, "int")
         self.assertEqual(config.getattr("a", raw=True).value, 1)
-        self.assertIsInstance(config.getattr("b", raw=True), Item)
+        self.assertIsInstance(config.getattr("b", raw=True), Options)
         self.assertEqual(config.getattr("b", raw=True).type, "int")
         self.assertEqual(config.getattr("b", raw=True).value, 2)
         self.assertIsInstance(config.getattr("c", raw=True), Config)
-        self.assertIsInstance(config.c.getattr("d", raw=True), Item)
+        self.assertIsInstance(config.c.getattr("d", raw=True), Options)
         self.assertEqual(config.c.getattr("d", raw=True).type, "int")
         self.assertEqual(config.c.getattr("d", raw=True).value, 12)
-        self.assertIsInstance(config.c.e.f.getattr("g", raw=True), Item)
+        self.assertIsInstance(config.c.e.f.getattr("g", raw=True), Options)
         self.assertEqual(config.c.e.f.getattr("g", raw=True).type, "int")
         self.assertEqual(config.c.e.f.getattr("g", raw=True).value, 34)
 
@@ -158,7 +158,7 @@ class TestConfig(unittest.TestCase):
         self.assertEqual(
             config.getattr("c_e_f_g", raw=False, name_slicer="_"), 34)
         self.assertIsInstance(
-            config.getattr("c.e.f.g", raw=True, name_slicer="."), Item)
+            config.getattr("c.e.f.g", raw=True, name_slicer="."), Options)
         self.assertEqual(
             config.getattr("c.e.f.g", raw=True, name_slicer=".").value, 34)
 
@@ -173,27 +173,27 @@ class TestConfig(unittest.TestCase):
         config.getattr("a", raw=True).type = None
         config.setattr("a", {"a": 1, "b": 2, "$type": "int"}, raw=False)
         self.assertDictEqual(config.a, {"a": 1, "b": 2, "$type": "int"})
-        config.setattr("a", Item(value=12), raw=False)
-        self.assertIsInstance(config.a, Item)
+        config.setattr("a", Options(value=12), raw=False)
+        self.assertIsInstance(config.a, Options)
         self.assertEqual(config.a.type, None)
         self.assertEqual(config.a.value, 12)
         self.assertRaises(
             AttributeError, config.setattr, "sub", 123, raw=False)
 
         config.setattr("a", "123", raw=True)
-        self.assertIsInstance(config.getattr("a", raw=True), Item)
+        self.assertIsInstance(config.getattr("a", raw=True), Options)
         self.assertEqual(config.a, "123")
         config.setattr("a", {"a": 12, "b": 34}, raw=True)
         self.assertIsInstance(config.a, Config)
-        self.assertIsInstance(config.a.getattr("a", raw=True), Item)
+        self.assertIsInstance(config.a.getattr("a", raw=True), Options)
         self.assertEqual(config.a.a, 12)
-        self.assertIsInstance(config.a.getattr("b", raw=True), Item)
+        self.assertIsInstance(config.a.getattr("b", raw=True), Options)
         self.assertEqual(config.a.b, 34)
         config.setattr("sub", {"a": 12, "b": 34}, raw=True)
         self.assertIsInstance(config.sub, Config)
-        self.assertIsInstance(config.sub.getattr("a", raw=True), Item)
+        self.assertIsInstance(config.sub.getattr("a", raw=True), Options)
         self.assertEqual(config.sub.a, 12)
-        self.assertIsInstance(config.sub.getattr("b", raw=True), Item)
+        self.assertIsInstance(config.sub.getattr("b", raw=True), Options)
         self.assertEqual(config.sub.b, 34)
 
     def test_getitem(self):
@@ -275,7 +275,7 @@ class TestConfig(unittest.TestCase):
                 "$required": None,
                 "$max": None,
                 "$min": None,
-                "$argparse": None,
+                "$argoptions": None,
                 "$help": None,
             },
             "b": {
@@ -284,7 +284,7 @@ class TestConfig(unittest.TestCase):
                 "$required": None,
                 "$max": None,
                 "$min": None,
-                "$argparse": None,
+                "$argoptions": None,
                 "$help": None,
             },
             "c": {
@@ -293,7 +293,7 @@ class TestConfig(unittest.TestCase):
                 "$required": None,
                 "$max": None,
                 "$min": None,
-                "$argparse": None,
+                "$argoptions": None,
                 "$help": None,
             },
             "sub": {
@@ -303,7 +303,7 @@ class TestConfig(unittest.TestCase):
                     "$required": None,
                     "$max": None,
                     "$min": None,
-                    "$argparse": None,
+                    "$argoptions": None,
                     "$help": None,
                 },
                 "f": {
@@ -312,7 +312,7 @@ class TestConfig(unittest.TestCase):
                     "$required": None,
                     "$max": None,
                     "$min": None,
-                    "$argparse": None,
+                    "$argoptions": None,
                     "$help": None
                 },
                 "h": {
@@ -321,7 +321,7 @@ class TestConfig(unittest.TestCase):
                     "$required": None,
                     "$max": None,
                     "$min": None,
-                    "$argparse": None,
+                    "$argoptions": None,
                     "$help": None,
                 },
                 "g": {
@@ -331,7 +331,7 @@ class TestConfig(unittest.TestCase):
                         "$required": None,
                         "$max": None,
                         "$min": None,
-                        "$argparse": None,
+                        "$argoptions": None,
                         "$help": None,
                     },
                 }
@@ -411,16 +411,16 @@ class TestConfig(unittest.TestCase):
                 }
             },
             merge=True)
-        self.assertIsInstance(config.getattr("a", raw=True), Item)
+        self.assertIsInstance(config.getattr("a", raw=True), Options)
         self.assertEqual(config.a, "1")
         self.assertIsInstance(config.getattr("b", raw=True), Config)
-        self.assertIsInstance(config.b.getattr("a", raw=True), Item)
+        self.assertIsInstance(config.b.getattr("a", raw=True), Options)
         self.assertEqual(config.b.a, 12)
         self.assertIsInstance(config.c.a, Config)
         self.assertEqual(config.c.a.d, 1)
         self.assertEqual(config.c.b, 12)
         self.assertEqual(config.c.getattr("b", raw=True).required, True)
-        self.assertIsInstance(config.d.getattr("f", raw=True), Item)
+        self.assertIsInstance(config.d.getattr("f", raw=True), Options)
         self.assertEqual(config.d.f, 12)
 
     def test_assert_values(self):
@@ -616,7 +616,7 @@ class TestConfig(unittest.TestCase):
                 "d": {
                     "e": {
                         "$type": list,
-                        "argparse": {
+                        "argoptions": {
                             "type": int,
                         }
                     }
@@ -632,7 +632,7 @@ class TestConfig(unittest.TestCase):
                 "d": {
                     "e": {
                         "$type": list,
-                        "argparse": {
+                        "argoptions": {
                             "nargs": 2
                         }
                     }
