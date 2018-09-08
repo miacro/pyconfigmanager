@@ -35,6 +35,8 @@ class ArgparseItem(BasicItem):
             "metavar",
             "dest",
             "action",
+            "position",
+            "short",
         ], **kwargs)
 
 

@@ -213,6 +213,12 @@ class Config():
                             verbosity=verbosity,
                             name=show_name)
 
+    def argument_options(self,
+                         prefix="",
+                         subcommands=(),
+                         command_name="command"):
+        pass
+
     def argument_parser(self,
                         parser=None,
                         subcommands=(),
