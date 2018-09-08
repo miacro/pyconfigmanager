@@ -266,7 +266,7 @@ class Config():
             if isinstance(attr, Config):
                 attr.argument_parser(parser=parser, argprefix=arg_name)
             elif isinstance(attr, Options):
-                if attr.argoptions False:
+                if attr.argoptions is False:
                     continue
                 options = attr.argument_options()
                 if "dest" in options:

@@ -655,7 +655,7 @@ class TestConfig(unittest.TestCase):
                 "d": {
                     "e": {
                         "$type": list,
-                        "argparse": {
+                        "argoptions": {
                             "nargs": 2
                         }
                     }
