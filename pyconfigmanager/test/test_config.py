@@ -152,15 +152,13 @@ class TestConfig(unittest.TestCase):
         self.assertEqual(config.c.e.f.getattr("g", raw=True).type, "int")
         self.assertEqual(config.c.e.f.getattr("g", raw=True).value, 34)
 
-        self.assertEqual(config.getattr("a", raw=False, name_slicer="."), 1)
-        self.assertEqual(
-            config.getattr("c.e.f.g", raw=False, name_slicer="."), 34)
-        self.assertEqual(
-            config.getattr("c_e_f_g", raw=False, name_slicer="_"), 34)
+        self.assertEqual(config.getattr("a", raw=False), 1)
+        self.assertEqual(config.getattr(["c", "e", "f", "g"], raw=False), 34)
+        self.assertEqual(config.getattr(["c", "e", "f", "g"], raw=False), 34)
         self.assertIsInstance(
-            config.getattr("c.e.f.g", raw=True, name_slicer="."), Options)
+            config.getattr(("c", "e", "f", "g"), raw=True), Options)
         self.assertEqual(
-            config.getattr("c.e.f.g", raw=True, name_slicer=".").value, 34)
+            config.getattr(("c", "e", "f", "g"), raw=True).value, 34)
 
     def test_setattr(self):
         config = Config({"a": 1, "b": 2, "sub": {"c": "hello", "d": 0.9}})

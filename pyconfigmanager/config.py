@@ -57,22 +57,19 @@ class Config():
     def __setattr__(self, name, value):
         return super().__setattr__(name, value)
 
-    def getattr(self, name, raw=False, name_slicer=None):
-        if name_slicer:
-            names = list(filter(str, name.split(name_slicer)))
-            if not names:
-                raise AttributeError(
-                    "'{}' object has no attribute '{}'".format(
-                        self.__class__.__name__, name))
+    def getattr(self, name, raw=False):
+        if isinstance(name, list) or isinstance(name, tuple):
+            names = name
             attr = self
             for name in names:
-                attr = attr.getattr(name=name, raw=raw, name_slicer=None)
+                attr = attr.getattr(name=name, raw=raw)
             return attr
         else:
             attr = super().__getattribute__(name)
             if (not raw) and isinstance(attr, Options):
                 return attr.value
-            return attr
+            else:
+                return attr
 
     def setattr(self, name, value, raw=False):
         if not raw:
@@ -362,7 +359,8 @@ class Config():
         self.update_values_by_arguments(args, subcommands=subcommands)
         if not valuefile_config:
             return args
-        attr = self.getattr(valuefile_config, raw=False, name_slicer=".")
+        valuefile_config = list(filter(str, valuefile_config.split(".")))
+        attr = self.getattr(valuefile_config, raw=False)
         if not attr:
             return args
         for values in utils.load_config(filename=attr):
@@ -395,8 +393,9 @@ class Config():
                     ignores=["config"],
                     dumpname=""):
         if not filename and filename_config:
+            filename_config = list(filter(str, filename_config.split(".")))
             filename = self.getattr(
-                filename_config, raw=False, name_slicer=".")
+                filename_config, raw=False)
         if not filename:
             raise ValueError("no filename specified")
         values = self.values()
