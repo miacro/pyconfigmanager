@@ -4,12 +4,18 @@ import logging
 from .logging import get_logging_level
 import argparse
 import sys
+from . import errors
 
 
 class Config():
-    OPTION_INDICATOR = "."
+    ATTR_INDICATOR = "."
 
     def __init__(self, schema={}):
+        for name in ("type", "value", "required",
+                     "min", "max", "help", "argoptions",
+                     "subitems"):
+            super().__setattr__(name, None)
+        super().__setattr__("subitems", {})
         if not isinstance(schema, dict):
             raise ValueError("schema('{}') must be instance of dict".format(
                 utils.typename(type(schema))))
@@ -20,11 +26,11 @@ class Config():
             schema = vars(schema)
         elif isinstance(schema, dict):
             if any([
-                    True if key[:1] == Config.OPTION_INDICATOR else False
+                    True if key[:1] == Config.ATTR_INDICATOR else False
                     for key in schema
             ]):
                 schema = {(key[1:]
-                           if key[:1] == Config.OPTION_INDICATOR else key):
+                           if key[:1] == Config.ATTR_INDICATOR else key):
                           value
                           for key, value in schema.items()}
             else:
@@ -58,21 +64,46 @@ class Config():
     def __setattr__(self, name, value):
         return super().__setattr__(name, value)
 
-    def getattr(self, name, raw=False):
-        if isinstance(name, list) or isinstance(name, tuple):
-            names = name
-            attr = self
-            for name in names:
-                attr = attr.getattr(name=name, raw=raw)
-            return attr
-        else:
-            attr = super().__getattribute__(name)
-            if (not raw) and isinstance(attr, Options):
-                return attr.value
-            else:
-                return attr
+    def isleaf(self):
+        return len(super().__getattribute__("subitems")) == 0
 
-    def setattr(self, name, value, raw=False):
+    def getitem(self, name, raw=False):
+        if not name:
+            return self.getattr("value")
+        if isinstance(name, str):
+            names = [name]
+        else:
+            names = name
+        attr = self
+        for name in names:
+            attr = attr.getattr("subitems")[name]
+        if (not raw) and attr.isleaf():
+            return attr.getattr("value")
+        return attr
+
+    def setitem(self, name, value, raw=False):
+        if not name:
+            return self.setattr("value", value)
+        if isinstance(name, str):
+            names = [name]
+        else:
+            names = name
+        attr = self
+        for name in names:
+            attr = attr.getattr("subitems")[name]
+
+    def getattr(self, name):
+        return super().__getattribute__(name)
+
+    def setattr(self, name, value):
+        return super().__setattr__(name, value)
+        if isinstance(name, list) or isinstance(name, tuple):
+            if len(name) == 1:
+                name = name[0]
+            elif len(name) == 0:
+                raise errors.ConfigError("setattr with no name specified")
+            else:
+                return self.getattr(name, raw=raw, option=option)
         if not raw:
             attr = self.getattr(name, raw=True)
             if (isinstance(attr, Options)):
@@ -118,7 +149,7 @@ class Config():
         attr = self.getattr(name, raw=True)
         if isinstance(attr, Options):
             return {
-                "{}{}".format(Config.OPTION_INDICATOR, key): value
+                "{}{}".format(Config.ATTR_INDICATOR, key): value
                 for key, value in vars(attr).items()
             }
         elif isinstance(attr, Config):
