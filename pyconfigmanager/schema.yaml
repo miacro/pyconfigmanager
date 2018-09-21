@@ -5,7 +5,7 @@ schema:
     dump: ""
   prog: &prog
     input:
-      $type: list
+      .type: list
       value:
       -
       argparse:
@@ -13,7 +13,7 @@ schema:
     output: ""
   logging: &logging
     verbosity:
-      $type: str
+      .type: str
       value: INFO
       argparse:
         choices:

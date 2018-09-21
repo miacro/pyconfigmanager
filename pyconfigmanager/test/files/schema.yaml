@@ -1,6 +1,6 @@
 test:
   a:
-    $type: str
+    .type: str
   b: 12
   c:
     d: 12

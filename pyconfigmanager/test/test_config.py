@@ -18,12 +18,12 @@ class TestConfig(unittest.TestCase):
         self.assertEqual(config.type, "list")
         self.assertEqual(config.value, [1, 2, 3])
 
-        config = Config({"$type": str, "value": 12})
+        config = Config({".type": str, "value": 12})
         self.assertIsInstance(config, Options)
         self.assertEqual(config.type, "str")
         self.assertEqual(config.value, "12")
 
-        config = Config({"type": "str", "$value": [1, 2, 3]})
+        config = Config({"type": "str", ".value": [1, 2, 3]})
         self.assertIsInstance(config, Options)
         self.assertEqual(config.type, "str")
         self.assertEqual(config.value, "[1, 2, 3]")
@@ -46,7 +46,7 @@ class TestConfig(unittest.TestCase):
             "value": 12,
             "none": None,
             "item": {
-                "$type": "str",
+                ".type": "str",
                 "value": 123,
                 "max": 1000,
             },
@@ -55,7 +55,7 @@ class TestConfig(unittest.TestCase):
                     "c": 12,
                     "d": [1, 2, 3],
                     "e": {
-                        "$type": "int"
+                        ".type": "int"
                     },
                     "f": {
                         "end": 123
@@ -169,8 +169,8 @@ class TestConfig(unittest.TestCase):
         config.setattr("a", None, raw=False)
         self.assertEqual(config.a, None)
         config.getattr("a", raw=True).type = None
-        config.setattr("a", {"a": 1, "b": 2, "$type": "int"}, raw=False)
-        self.assertDictEqual(config.a, {"a": 1, "b": 2, "$type": "int"})
+        config.setattr("a", {"a": 1, "b": 2, ".type": "int"}, raw=False)
+        self.assertDictEqual(config.a, {"a": 1, "b": 2, ".type": "int"})
         config.setattr("a", Options(value=12), raw=False)
         self.assertIsInstance(config.a, Options)
         self.assertEqual(config.a.type, None)
@@ -261,76 +261,76 @@ class TestConfig(unittest.TestCase):
                     "type": "int"
                 },
                 "h": {
-                    "$type": "int",
+                    ".type": "int",
                     "value": 12
                 }
             }
         })
         compare_result = {
             "a": {
-                "$type": "int",
-                "$value": 12,
-                "$required": None,
-                "$max": None,
-                "$min": None,
-                "$argoptions": None,
-                "$help": None,
+                ".type": "int",
+                ".value": 12,
+                ".required": None,
+                ".max": None,
+                ".min": None,
+                ".argoptions": None,
+                ".help": None,
             },
             "b": {
-                "$type": "int",
-                "$value": 34,
-                "$required": None,
-                "$max": None,
-                "$min": None,
-                "$argoptions": None,
-                "$help": None,
+                ".type": "int",
+                ".value": 34,
+                ".required": None,
+                ".max": None,
+                ".min": None,
+                ".argoptions": None,
+                ".help": None,
             },
             "c": {
-                "$type": "list",
-                "$value": [1, 2, 3],
-                "$required": None,
-                "$max": None,
-                "$min": None,
-                "$argoptions": None,
-                "$help": None,
+                ".type": "list",
+                ".value": [1, 2, 3],
+                ".required": None,
+                ".max": None,
+                ".min": None,
+                ".argoptions": None,
+                ".help": None,
             },
             "sub": {
                 "d": {
-                    "$type": "str",
-                    "$value": "hello",
-                    "$required": None,
-                    "$max": None,
-                    "$min": None,
-                    "$argoptions": None,
-                    "$help": None,
+                    ".type": "str",
+                    ".value": "hello",
+                    ".required": None,
+                    ".max": None,
+                    ".min": None,
+                    ".argoptions": None,
+                    ".help": None,
                 },
                 "f": {
-                    "$type": "float",
-                    "$value": 12.5,
-                    "$required": None,
-                    "$max": None,
-                    "$min": None,
-                    "$argoptions": None,
-                    "$help": None
+                    ".type": "float",
+                    ".value": 12.5,
+                    ".required": None,
+                    ".max": None,
+                    ".min": None,
+                    ".argoptions": None,
+                    ".help": None
                 },
                 "h": {
-                    "$type": "int",
-                    "$value": 12,
-                    "$required": None,
-                    "$max": None,
-                    "$min": None,
-                    "$argoptions": None,
-                    "$help": None,
+                    ".type": "int",
+                    ".value": 12,
+                    ".required": None,
+                    ".max": None,
+                    ".min": None,
+                    ".argoptions": None,
+                    ".help": None,
                 },
                 "g": {
                     "type": {
-                        "$type": "str",
-                        "$value": "int",
-                        "$required": None,
-                        "$max": None,
-                        "$min": None,
-                        "$argoptions": None,
-                        "$help": None,
+                        ".type": "str",
+                        ".value": "int",
+                        ".required": None,
+                        ".max": None,
+                        ".min": None,
+                        ".argoptions": None,
+                        ".help": None,
                     },
                 }
             },
@@ -356,8 +356,8 @@ class TestConfig(unittest.TestCase):
                     "a": 1
                 },
                 "b": {
-                    "$type": str,
-                    "$value": 123
+                    ".type": str,
+                    ".value": 123
                 }
             }, merge=False)
         self.assertIsInstance(config.a, Config)
@@ -378,7 +378,7 @@ class TestConfig(unittest.TestCase):
             "c": {
                 "a": 1,
                 "b": {
-                    "$value": "hello",
+                    ".value": "hello",
                     "required": True,
                 }
             }
@@ -393,7 +393,7 @@ class TestConfig(unittest.TestCase):
         config.update_schema(
             {
                 "a": {
-                    "$type": "str"
+                    ".type": "str"
                 },
                 "b": {
                     "a": 12
@@ -425,7 +425,7 @@ class TestConfig(unittest.TestCase):
         config = Config({
             "a": 12,
             "b": {
-                "$type": int,
+                ".type": int,
                 "value": "123",
                 "max": 12
             }
@@ -435,7 +435,7 @@ class TestConfig(unittest.TestCase):
             "a": {
                 "b": {
                     "c": {
-                        "$value": None,
+                        ".value": None,
                         "required": True
                     }
                 }
@@ -613,7 +613,7 @@ class TestConfig(unittest.TestCase):
             "c": {
                 "d": {
                     "e": {
-                        "$type": list,
+                        ".type": list,
                         "argoptions": {
                             "type": int,
                         }
@@ -629,7 +629,7 @@ class TestConfig(unittest.TestCase):
             "c": {
                 "d": {
                     "e": {
-                        "$type": list,
+                        ".type": list,
                         "argoptions": {
                             "nargs": 2
                         }
@@ -652,7 +652,7 @@ class TestConfig(unittest.TestCase):
             "c": {
                 "d": {
                     "e": {
-                        "$type": list,
+                        ".type": list,
                         "argoptions": {
                             "nargs": 2
                         }

@@ -7,7 +7,7 @@ import sys
 
 
 class Config():
-    ITEM_INDICATOR = "$"
+    OPTION_INDICATOR = "."
 
     def __init__(self, schema={}):
         if not isinstance(schema, dict):
@@ -20,11 +20,12 @@ class Config():
             schema = vars(schema)
         elif isinstance(schema, dict):
             if any([
-                    True if key[:1] == Config.ITEM_INDICATOR else False
+                    True if key[:1] == Config.OPTION_INDICATOR else False
                     for key in schema
             ]):
                 schema = {(key[1:]
-                           if key[:1] == Config.ITEM_INDICATOR else key): value
+                           if key[:1] == Config.OPTION_INDICATOR else key):
+                          value
                           for key, value in schema.items()}
             else:
                 return super(Config, self).__new__(self)
@@ -117,7 +118,7 @@ class Config():
         attr = self.getattr(name, raw=True)
         if isinstance(attr, Options):
             return {
-                "{}{}".format(Config.ITEM_INDICATOR, key): value
+                "{}{}".format(Config.OPTION_INDICATOR, key): value
                 for key, value in vars(attr).items()
             }
         elif isinstance(attr, Config):
