@@ -1,4 +1,4 @@
-from .options import Options
+from .options import ArgumentOptions
 from pyconfigmanager import utils
 import logging
 from .logging import get_logging_level
@@ -9,178 +9,197 @@ from . import errors
 
 class Config():
     ATTR_INDICATOR = "."
+    ATTR_NAMES = ("type", "value", "required",
+                  "min", "max", "help", "argoptions")
+    ATTR_SUBITEM = "subitems"
 
-    def __init__(self, schema={}):
-        for name in ("type", "value", "required",
-                     "min", "max", "help", "argoptions",
-                     "subitems"):
-            super().__setattr__(name, None)
-        super().__setattr__("subitems", {})
-        if not isinstance(schema, dict):
-            raise ValueError("schema('{}') must be instance of dict".format(
-                utils.typename(type(schema))))
+    def __init__(self, schema=None):
         self.update_schema(schema=schema, merge=False)
 
     def __new__(self, schema={}):
-        if isinstance(schema, Options):
-            schema = vars(schema)
-        elif isinstance(schema, dict):
-            if any([
-                    True if key[:1] == Config.ATTR_INDICATOR else False
-                    for key in schema
-            ]):
-                schema = {(key[1:]
-                           if key[:1] == Config.ATTR_INDICATOR else key):
-                          value
-                          for key, value in schema.items()}
-            else:
-                return super(Config, self).__new__(self)
-        else:
-            schema = {"value": schema}
-        if (("value" in schema) and (schema["value"] is not None)):
-            if (("type" not in schema) or (schema["type"] is None)):
-                schema["type"] = utils.typename(type(schema["value"]))
-        return Options(**schema)
+        return super(Config, self).__new__(self)
 
     def __iter__(self):
-        for name in self.__dict__:
+        for name in self.getattr(self.ATTR_SUBITEM):
             yield name
 
     def __repr__(self):
         return str(self.values())
 
     def __getitem__(self, name):
-        return self.getattr(name, raw=False)
+        return self.getitem(name, raw=None)
 
     def __setitem__(self, name, value):
-        return setattr(self, name, value)
+        return self.setitem(name, value, raw=None)
 
     def __delitem__(self, name):
-        return delattr(self, name)
+        if name not in self.getattr(self.ATTR_SUBITEM):
+            raise errors.ItemError(
+                "'{}' object has no item '{}'".format(
+                    self.__class__.__name__, name))
+        del self.getattr(self.ATTR_SUBITEM)[name]
 
     def __getattribute__(self, name):
-        return super().__getattribute__("getattr")(name, raw=False)
+        if name in dir(Config):
+            return super().__getattribute__(name)
+        return super().__getattribute__("getitem")(name, raw=None)
 
     def __setattr__(self, name, value):
-        return super().__setattr__(name, value)
+        if name in dir(Config):
+            raise errors.AttributeError(
+                "Can't modify reserved attr '{}'".format(name))
+        return super().__getattribute__("setitem")(name, value, raw=None)
+
+    def __delattr__(self, name):
+        if name == self.ATTR_SUBITEM:
+            super().__setattr__(name, {})
+        elif name in self.ATTR_NAMES:
+            self.setattr(name, None)
+        else:
+            raise errors.AttributeError(
+                "Unexcepted attr name '{}'".format(name))
 
     def isleaf(self):
-        return len(super().__getattribute__("subitems")) == 0
+        return len(self.getattr(self.ATTR_SUBITEM)) == 0
 
-    def getitem(self, name, raw=False):
+    def getitem(self, name, raw=None):
         if not name:
-            return self.getattr("value")
-        if isinstance(name, str):
+            if raw is None:
+                if not self.isleaf():
+                    raw = True
+            if raw:
+                return self
+            else:
+                return self.getattr("value")
+
+        if not (isinstance(name, list) or isinstance(name, tuple)):
             names = [name]
         else:
             names = name
-        attr = self
-        for name in names:
-            attr = attr.getattr("subitems")[name]
-        if (not raw) and attr.isleaf():
-            return attr.getattr("value")
-        return attr
 
-    def setitem(self, name, value, raw=False):
-        if not name:
-            return self.setattr("value", value)
-        if isinstance(name, str):
-            names = [name]
+        name = names[0]
+        names = names[1:]
+        if name not in self.getattr(self.ATTR_SUBITEM):
+            raise errors.ItemError(
+                "'{}' object has no item '{}'".format(
+                    self.__class__.__name__, name))
+        return self.getattr(self.ATTR_SUBITEM)[name].getitem(names, raw=raw)
+
+    def setitem(self, name, value, raw=None):
+        if name:
+            if not (isinstance(name, list) or isinstance(name, tuple)):
+                names = [name]
+            else:
+                names = name
         else:
-            names = name
-        attr = self
-        for name in names:
-            attr = attr.getattr("subitems")[name]
+            names = []
+
+        if not raw:
+            item = self.getitem(names, raw=True)
+            if isinstance(value, Config):
+                value = value.getattr("value")
+            return item.setattr("value", value)
+        else:
+            item = self.getitem(names[:-1], raw=True)
+            if not names:
+                raise errors.ItemError(
+                    "Unexcepted item name '{}'".format(names))
+            name = names[-1]
+            if not isinstance(value, Config):
+                value = Config(value)
+            item.getattr(self.ATTR_SUBITEM)[name] = value
 
     def getattr(self, name):
+        if name not in self.ATTR_NAMES + (self.ATTR_SUBITEM,):
+            raise errors.AttributeError(
+                "Unexcepted attr name '{}'".format(name))
         return super().__getattribute__(name)
 
     def setattr(self, name, value):
-        return super().__setattr__(name, value)
-        if isinstance(name, list) or isinstance(name, tuple):
-            if len(name) == 1:
-                name = name[0]
-            elif len(name) == 0:
-                raise errors.ConfigError("setattr with no name specified")
-            else:
-                return self.getattr(name, raw=raw, option=option)
-        if not raw:
-            attr = self.getattr(name, raw=True)
-            if (isinstance(attr, Options)):
-                attr.value = value
-            else:
-                raise AttributeError("{} {} {}".format(
-                    "only attribute 'value' of 'Options' can be updated",
-                    "when raw=False,", "while attribute: '{}'".format(
-                        type(attr).__name__)))
-        else:
-            if isinstance(value, Options) or isinstance(value, Config):
-                attr_value = value
-            else:
-                attr_value = Config(value)
-            return super().__setattr__(name, attr_value)
+        if name not in self.ATTR_NAMES:
+            raise errors.AttributeError(
+                "Unexcepted attr name '{}'".format(name))
 
-    def items(self, raw=False):
+        if name == "argoptions":
+            if isinstance(value, ArgumentOptions):
+                pass
+            elif isinstance(value, dict):
+                value = ArgumentOptions(**value)
+            else:
+                value = bool(value)
+        elif name == "type":
+            if value is not None:
+                if isinstance(value, type):
+                    value = utils.typename(value)
+                else:
+                    value = str(value)
+                if self.getattr("value") is not None:
+                    super().__setattr__("value", utils.convert_type(
+                        self.getattr("value"), value))
+                if self.getattr("max") is not None:
+                    super().__setattr__("max", utils.convert_type(
+                        self.getattr("max"), value))
+                if self.getattr("min") is not None:
+                    super().__setattr__("min", utils.convert_type(
+                        self.getattr("min"), value))
+        elif name == "max" or name == "min" or name == "value":
+            if (self.getattr("type") is not None and value is not None):
+                value = utils.convert_type(value, self.getattr("type"))
+        return super().__setattr__(name, value)
+
+    def items(self, raw=None):
         result = []
         for name in self:
-            result.append((name, self.getattr(name, raw=raw)))
+            result.append((name, self.getitem(name, raw=raw)))
+        return result
+
+    def attrs(self):
+        result = []
+        for name in self.ATTR_NAMES:
+            result.append((name, self.getattr(name)))
         return result
 
     def values(self):
         result = {}
         for name in self:
-            attr = self.getattr(name, raw=True)
-            if isinstance(attr, Config):
-                result[name] = attr.values()
-            elif isinstance(attr, Options):
-                result[name] = attr.value
+            item = self.getitem(name, raw=True)
+            if item.isleaf():
+                result[name] = item.getattr("value")
             else:
-                result[name] = attr
+                result[name] = item.values()
         return result
 
-    def schema(self, name=None):
-        if name is None:
-            name = list(self.__dict__.keys())
-        if isinstance(name, list):
-            result = {}
-            for name_item in name:
-                result[name_item] = self.schema(name_item)
-            return result
-        attr = self.getattr(name, raw=True)
-        if isinstance(attr, Options):
-            return {
-                "{}{}".format(Config.ATTR_INDICATOR, key): value
-                for key, value in vars(attr).items()
-            }
-        elif isinstance(attr, Config):
-            return attr.schema()
+    def schema(self, recursive=True):
+        result = {}
+        for name, value in self.attrs():
+            result[self.ATTR_INDICATOR + name] = value
+        if recursive:
+            for name, value in self.items(raw=True):
+                result[name] = value.schema(recursive=recursive)
+        return result
 
     def update_schema(self, schema={}, merge=True):
-        if schema is None:
-            if not merge:
-                for name in [name for name, _ in self.items()]:
-                    del self[name]
-            return
-        for name in schema:
-            if not merge:
-                self.setattr(name, schema[name], raw=True)
-                continue
-            if schema[name] is None:
-                continue
-            if name not in self:
-                self.setattr(name, schema[name], raw=True)
-            attr = self.getattr(name, raw=True)
-            init_attr = Config.__new__(Config, schema[name])
-            if isinstance(attr, Options) and isinstance(init_attr, Options):
-                attr.update_values(values=vars(init_attr), merge=merge)
-            elif isinstance(attr, Options) and isinstance(init_attr, Config):
-                self.setattr(name, schema[name], raw=True)
-            elif isinstance(attr, Config) and isinstance(init_attr, Options):
-                self.setattr(name, schema[name], raw=True)
-            elif isinstance(attr, Config) and isinstance(init_attr, Config):
-                attr.update_schema(schema[name], merge=merge)
+        def normalize_schema(schema):
+            attrtype = self.ATTR_INDICATOR + "type"
+            attrvalue = self.ATTR_INDICATOR + "value"
+            if not isinstance(schema, dict):
+                schema = {attrvalue: schema}
+            if ((attrvalue in schema) and (schema[attrvalue] is not None)):
+                if ((attrtype not in schema) or (schema[attrtype] is None)):
+                    schema[attrtype] = utils.typename(type(schema[attrvalue]))
+            return schema
+        schema = normalize_schema(schema)
+        if not merge:
+            for name in self.ATTR_NAMES:
+                self.setattr(name, None)
+            super().__setattr__(self.ATTR_SUBITEM, {})
+        for name in sorted(schema.keys()):
+            if name[0] == self.ATTR_INDICATOR:
+                self.setattr(name[1:], schema[name])
+            elif name not in self:
+                self.setitem(name, Config(schema[name]), raw=True)
             else:
-                self.setattr(name, schema[name], raw=True)
+                self.getitem(name, raw=True).update_schema(schema[name])
 
     def assert_values(self, schema=None, name=""):
         if not schema:
