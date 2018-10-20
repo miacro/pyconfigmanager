@@ -1,7 +1,7 @@
 from .options import ArgumentOptions
 from pyconfigmanager import utils
 import logging
-from .logging import get_logging_level
+from .logger import get_logging_level
 import argparse
 import sys
 from . import errors
@@ -9,8 +9,8 @@ from . import errors
 
 class Config():
     ATTR_INDICATOR = "."
-    ATTR_NAMES = ("type", "value", "required",
-                  "min", "max", "help", "argoptions")
+    ATTR_NAMES = ("type", "value", "required", "min", "max", "help",
+                  "argoptions")
     ATTR_SUBITEM = "subitems"
 
     def __init__(self, schema=None):
@@ -34,9 +34,8 @@ class Config():
 
     def __delitem__(self, name):
         if name not in self.getattr(self.ATTR_SUBITEM):
-            raise errors.ItemError(
-                "'{}' object has no item '{}'".format(
-                    self.__class__.__name__, name))
+            raise errors.ItemError("'{}' object has no item '{}'".format(
+                self.__class__.__name__, name))
         del self.getattr(self.ATTR_SUBITEM)[name]
 
     def __getattribute__(self, name):
@@ -80,9 +79,8 @@ class Config():
         name = names[0]
         names = names[1:]
         if name not in self.getattr(self.ATTR_SUBITEM):
-            raise errors.ItemError(
-                "'{}' object has no item '{}'".format(
-                    self.__class__.__name__, name))
+            raise errors.ItemError("'{}' object has no item '{}'".format(
+                self.__class__.__name__, name))
         return self.getattr(self.ATTR_SUBITEM)[name].getitem(names, raw=raw)
 
     def setitem(self, name, value, raw=None):
@@ -110,7 +108,7 @@ class Config():
             item.getattr(self.ATTR_SUBITEM)[name] = value
 
     def getattr(self, name):
-        if name not in self.ATTR_NAMES + (self.ATTR_SUBITEM,):
+        if name not in self.ATTR_NAMES + (self.ATTR_SUBITEM, ):
             raise errors.AttributeError(
                 "Unexcepted attr name '{}'".format(name))
         return super().__getattribute__(name)
@@ -134,14 +132,17 @@ class Config():
                 else:
                     value = str(value)
                 if self.getattr("value") is not None:
-                    super().__setattr__("value", utils.convert_type(
-                        self.getattr("value"), value))
+                    super().__setattr__("value",
+                                        utils.convert_type(
+                                            self.getattr("value"), value))
                 if self.getattr("max") is not None:
-                    super().__setattr__("max", utils.convert_type(
-                        self.getattr("max"), value))
+                    super().__setattr__("max",
+                                        utils.convert_type(
+                                            self.getattr("max"), value))
                 if self.getattr("min") is not None:
-                    super().__setattr__("min", utils.convert_type(
-                        self.getattr("min"), value))
+                    super().__setattr__("min",
+                                        utils.convert_type(
+                                            self.getattr("min"), value))
         elif name == "max" or name == "min" or name == "value":
             if (self.getattr("type") is not None and value is not None):
                 value = utils.convert_type(value, self.getattr("type"))
@@ -188,6 +189,7 @@ class Config():
                 if ((attrtype not in schema) or (schema[attrtype] is None)):
                     schema[attrtype] = utils.typename(type(schema[attrvalue]))
             return schema
+
         schema = normalize_schema(schema)
         if not merge:
             for name in self.ATTR_NAMES:
@@ -206,9 +208,11 @@ class Config():
         if schema is None:
             checker = self
         elif not isinstance(schema, Config):
-            checker = Config(
-                {name: value for name, value in schema.items()
-                 if name[0:1] == self.ATTR_INDICATOR})
+            checker = Config({
+                name: value
+                for name, value in schema.items()
+                if name[0:1] == self.ATTR_INDICATOR
+            })
         else:
             checker = schema
 
@@ -223,27 +227,27 @@ class Config():
         if checker.getattr("required"):
             assert value is not None, message + "required"
         if check_type is not None:
-            assert isinstance(
-                value, utils.locate_type(check_type)), (
-                    message + "'{}' not instance of '{}'".format(
-                        value, check_type))
+            assert isinstance(value, utils.locate_type(check_type)), (
+                message +
+                "'{}' not instance of '{}'".format(value, check_type))
         if check_min is not None:
             assert value >= check_min, (
-                message + "'{}' required >= {}".format(
-                    value, check_min))
+                message + "'{}' required >= {}".format(value, check_min))
         if check_max is not None:
             assert value <= check_max, (
-                message + "'{}' required <= {}".format(
-                    value, check_max))
+                message + "'{}' required <= {}".format(value, check_max))
 
     def assert_values(self, schema=None, name=""):
         if not schema:
             schema = self.schema(recursive=True)
 
         self.assert_value(
-            schema={name: value
-                    for name, value in schema.items(
-                    ) if name[0:1] == self.ATTR_INDICATOR}, name=name)
+            schema={
+                name: value
+                for name, value in schema.items()
+                if name[0:1] == self.ATTR_INDICATOR
+            },
+            name=name)
         for item_name in schema:
             if item_name[0:1] == self.ATTR_INDICATOR:
                 continue
@@ -260,33 +264,35 @@ class Config():
                 item.assert_values(schema=schema[item_name], name=show_name)
 
     def logging_values(self, schema=None, verbosity="INFO", name=""):
+        attr_value = self.ATTR_INDICATOR + "value"
         if not schema:
-            schema = self.schema()
-        for attr_name in schema:
-            if not schema[attr_name]:
-                continue
-            if name:
-                show_name = "{}.{}".format(name, attr_name)
+            schema = self.schema(recursive=True)
+        elif not isinstance(schema, dict):
+            schema = {attr_value: None}
+        if attr_value in schema:
+            tolog = False
+            if self.isleaf():
+                if schema[attr_value] or schema[attr_value] is None:
+                    tolog = True
             else:
-                show_name = attr_name
-            attr = self.getattr(attr_name, raw=True)
-            if isinstance(attr, Options):
+                if schema[attr_value]:
+                    tolog = True
+            if tolog:
                 logging.log(
                     get_logging_level(verbosity), "{}: {}".format(
-                        show_name, attr.value))
-            elif isinstance(attr, Config):
-                if isinstance(
-                        Config.__new__(Config, schema[attr_name]), Config):
-                    attr.logging_values(
-                        schema=schema[attr_name],
-                        verbosity=verbosity,
-                        name=show_name)
-                else:
-                    if schema[attr_name] is True:
-                        attr.logging_values(
-                            schema=attr.schema(),
-                            verbosity=verbosity,
-                            name=show_name)
+                        name, self.getattr("value")))
+        for item_name in sorted(schema.keys()):
+            if item_name[0:1] == self.ATTR_INDICATOR:
+                continue
+            if not schema[item_name]:
+                continue
+            if name:
+                show_name = "{}.{}".format(name, item_name)
+            else:
+                show_name = item_name
+            item = self.getitem(item_name, raw=True)
+            item.logging_values(
+                schema=schema[item_name], verbosity=verbosity, name=show_name)
 
     def argument_options(self,
                          prefix="",
@@ -294,13 +300,15 @@ class Config():
                          command_name="command"):
         pass
 
-    def argument_parser(self,
-                        parser=None,
-                        subcommands=(),
-                        ignores=(),
-                        command_attrname="command",
-                        parentnames=[],
-                        argprefix="",):
+    def argument_parser(
+            self,
+            parser=None,
+            subcommands=(),
+            ignores=(),
+            command_attrname="command",
+            parentnames=[],
+            argprefix="",
+    ):
         subcommands = normalize_subcommands(subcommands)
         if not parser:
             parser = argparse.ArgumentParser(
@@ -327,8 +335,7 @@ class Config():
                 arg_name = "".join(
                     ["{}.".format(name) for name in parentnames])
                 arg_name += attr_name
-                subparser.set_defaults(
-                    **{command_attrname: arg_name})
+                subparser.set_defaults(**{command_attrname: arg_name})
                 self.getattr(
                     attr_name, raw=True).argument_parser(
                         parser=subparser,
@@ -395,10 +402,11 @@ class Config():
         if not isinstance(args, dict):
             args = vars(args)
 
-        if (subcommands and (command_attrname in args) and
-                args[command_attrname]):
+        if (subcommands and (command_attrname in args)
+                and args[command_attrname]):
             command_names = [
-                name for name in args[command_attrname].split(".") if name]
+                name for name in args[command_attrname].split(".") if name
+            ]
             subconfigs = [self]
             for name in command_names:
                 if name not in subcommands:
@@ -442,12 +450,13 @@ class Config():
         if not attr:
             return args
         for values in utils.load_config(filename=attr):
-            self.update_values(utils.pickitems(
-                values,
-                pickname=valuefile_pickname,
-                excludes=valuefile_excludes))
+            self.update_values(
+                utils.pickitems(
+                    values,
+                    pickname=valuefile_pickname,
+                    excludes=valuefile_excludes))
         # force args overrides prog_config
-        parser = self.argument_parser(subcommands=subcommands,)
+        parser = self.argument_parser(subcommands=subcommands, )
         args = parser.parse_args(arguments)
         self.update_values_by_arguments(args, subcommands=subcommands)
         return args
@@ -472,8 +481,7 @@ class Config():
                     dumpname=""):
         if not filename and filename_config:
             filename_config = list(filter(str, filename_config.split(".")))
-            filename = self.getattr(
-                filename_config, raw=False)
+            filename = self.getattr(filename_config, raw=False)
         if not filename:
             raise ValueError("no filename specified")
         values = self.values()
