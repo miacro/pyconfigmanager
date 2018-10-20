@@ -636,29 +636,52 @@ class TestConfig(unittest.TestCase):
         self.assertIsInstance(config.d.getitem("f", raw=True), Config)
         self.assertEqual(config.d.f, 12)
 
-
-"""
     def test_assert_values(self):
         config = Config({
             "a": 12,
             "b": {
                 ".type": int,
-                "value": "123",
-                "max": 12
+                ".value": "123",
+                ".max": 12
             }
         })
         self.assertRaises(AssertionError, config.assert_values)
+        self.assertRaises(AssertionError, config.assert_values, {
+            "a": {
+                "b": {
+                    ".max": 12
+                }
+            }
+        })
+        self.assertRaises(AssertionError, config.assert_values, {
+            "a": {
+                "b": {
+                    ".min": 345
+                }
+            }
+        })
+        self.assertRaises(AssertionError, config.assert_values, {
+            "a": {
+                "b": {
+                    ".type": "str"
+                }
+            }
+        })
         config = Config({
             "a": {
                 "b": {
                     "c": {
                         ".value": None,
-                        "required": True
+                        ".required": True
                     }
                 }
             }
         })
         self.assertRaises(AssertionError, config.assert_values)
+        config.a.b.getitem(
+            "c", raw=True).assert_value(schema={
+                ".required": False
+            })
         config.assert_values(schema={"a": True})
         self.assertRaises(AssertionError, config.assert_values, {
             "a": True,
@@ -671,7 +694,9 @@ class TestConfig(unittest.TestCase):
             schema={
                 "a": {
                     "b": {
-                        "c": True
+                        "c": {
+                            ".required": True
+                        }
                     }
                 }
             })
@@ -689,7 +714,39 @@ class TestConfig(unittest.TestCase):
                     }
                 }
             })
+        config = Config({
+            "a": {
+                "b": {
+                    "c": {
+                        ".value": None,
+                        ".required": None
+                    }
+                }
+            }
+        })
+        self.assertRaises(
+            AssertionError,
+            config.assert_values,
+            schema={
+                "a": {
+                    "b": {
+                        "c": {
+                            ".required": True
+                        }
+                    }
+                }
+            })
+        self.assertRaises(
+            AssertionError,
+            config.assert_values,
+            schema={
+                "a": {
+                    ".required": True
+                }
+            })
 
+
+"""
     def test_update_value_by_argument(self):
         config = Config({"a": 12, "b": 13, "c": {"d": {"e": 45}}})
         config.update_value_by_argument(
