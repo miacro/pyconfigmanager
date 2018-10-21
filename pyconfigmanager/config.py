@@ -8,10 +8,9 @@ from . import errors
 
 
 class Config():
-    ATTR_INDICATOR = "."
-    ATTR_NAMES = ("type", "value", "required", "min", "max", "help",
-                  "argoptions")
-    ATTR_SUBITEM = "subitems"
+    ATTR_NAMES = ("_type_", "_value_", "_required_", "_min_", "_max_",
+                  "_help_", "_argoptions_")
+    ATTR_SUBITEM = "_subitems_"
 
     def __init__(self, schema=None):
         self.update_schema(schema=schema, merge=False)
@@ -49,34 +48,34 @@ class Config():
             raise errors.AttributeError(
                 "Can't modify reserved attr '{}'".format(name))
         elif name in self.ATTR_NAMES:
-            if name == "argoptions":
+            if name == "_argoptions_":
                 if isinstance(value, ArgumentOptions):
                     pass
                 elif isinstance(value, dict):
                     value = ArgumentOptions(**value)
                 else:
                     value = bool(value)
-            elif name == "type":
+            elif name == "_type_":
                 if value is not None:
                     if isinstance(value, type):
                         value = utils.typename(value)
                     else:
                         value = str(value)
-                    if self.value is not None:
-                        super().__setattr__("value",
+                    if self._value_ is not None:
+                        super().__setattr__("_value_",
                                             utils.convert_type(
-                                                self.value, value))
-                    if self.max is not None:
-                        super().__setattr__("max",
+                                                self._value_, value))
+                    if self._max_ is not None:
+                        super().__setattr__("_max_",
                                             utils.convert_type(
-                                                self.max, value))
-                    if self.min is not None:
-                        super().__setattr__("min",
+                                                self._max_, value))
+                    if self._min_ is not None:
+                        super().__setattr__("_min_",
                                             utils.convert_type(
-                                                self.min, value))
-            elif name == "max" or name == "min" or name == "value":
-                if (self.type is not None and value is not None):
-                    value = utils.convert_type(value, self.type)
+                                                self._min_, value))
+            elif name == "_max_" or name == "_min_" or name == "_value_":
+                if (self._type_ is not None and value is not None):
+                    value = utils.convert_type(value, self._type_)
             return super().__setattr__(name, value)
         else:
             return super().__getattribute__("setitem")(name, value, raw=None)
@@ -101,7 +100,7 @@ class Config():
             if raw:
                 return self
             else:
-                return self.value
+                return self._value_
 
         if not (isinstance(name, list) or isinstance(name, tuple)):
             names = [name]
@@ -127,8 +126,8 @@ class Config():
         if not raw:
             item = self.getitem(names, raw=True)
             if isinstance(value, Config):
-                value = getattr(value, "value")
-            item.value = value
+                value = value._value_
+            item._value_ = value
             return
         else:
             item = self.getitem(names[:-1], raw=True)
@@ -157,7 +156,7 @@ class Config():
         for name in self:
             item = self.getitem(name, raw=True)
             if item.isleaf():
-                result[name] = item.value
+                result[name] = item._value_
             else:
                 result[name] = item.values()
         return result
@@ -165,7 +164,7 @@ class Config():
     def schema(self, recursive=True):
         result = {}
         for name, value in self.attrs():
-            result[self.ATTR_INDICATOR + name] = value
+            result[name] = value
         if recursive:
             for name, value in self.items(raw=True):
                 result[name] = value.schema(recursive=recursive)
@@ -173,13 +172,11 @@ class Config():
 
     def update_schema(self, schema={}, merge=True):
         def normalize_schema(schema):
-            attrtype = self.ATTR_INDICATOR + "type"
-            attrvalue = self.ATTR_INDICATOR + "value"
             if not isinstance(schema, dict):
-                schema = {attrvalue: schema}
-            if ((attrvalue in schema) and (schema[attrvalue] is not None)):
-                if ((attrtype not in schema) or (schema[attrtype] is None)):
-                    schema[attrtype] = utils.typename(type(schema[attrvalue]))
+                schema = {"_value_": schema}
+            if (("_value_" in schema) and (schema["_value_"] is not None)):
+                if (("_type_" not in schema) or (schema["_type_"] is None)):
+                    schema["_type_"] = utils.typename(type(schema["_value_"]))
             return schema
 
         schema = normalize_schema(schema)
@@ -188,8 +185,11 @@ class Config():
                 setattr(self, name, None)
             super().__setattr__(self.ATTR_SUBITEM, {})
         for name in sorted(schema.keys()):
-            if name[0] == self.ATTR_INDICATOR:
-                setattr(self, name[1:], schema[name])
+            if name[0:1] == "_" and name[-1:] == "_":
+                if name not in Config.ATTR_NAMES:
+                    raise errors.AttributeError(
+                        "Unexcepted attr '{}'".format(name))
+                setattr(self, name, schema[name])
             elif name not in self:
                 self.setitem(name, Config(schema[name]), raw=True)
             else:
@@ -203,20 +203,20 @@ class Config():
             checker = Config({
                 name: value
                 for name, value in schema.items()
-                if name[0:1] == self.ATTR_INDICATOR
+                if name[0:1] == "_" and name[-1:] == "_"
             })
         else:
             checker = schema
 
-        value = self.value
-        check_type = checker.type
-        check_min = checker.min
-        check_max = checker.max
+        value = self._value_
+        check_type = checker._type_
+        check_min = checker._min_
+        check_max = checker._max_
         if show_name:
             message = "Item '{}': value ".format(show_name)
         else:
             message = "Item value "
-        if checker.required:
+        if checker._required_:
             assert value is not None, message + "required"
         if check_type is not None:
             assert isinstance(value, utils.locate_type(check_type)), (
@@ -237,11 +237,11 @@ class Config():
             schema={
                 name: value
                 for name, value in schema.items()
-                if name[0:1] == self.ATTR_INDICATOR
+                if name[0:1] == "_" and name[-1:] == "_"
             },
             name=name)
         for item_name in schema:
-            if item_name[0:1] == self.ATTR_INDICATOR:
+            if item_name[0:1] == "_" and item_name[-1:] == "_":
                 continue
             if not schema[item_name]:
                 continue
@@ -256,25 +256,24 @@ class Config():
                 item.assert_values(schema=schema[item_name], name=show_name)
 
     def logging_values(self, schema=None, verbosity="INFO", name=""):
-        attr_value = self.ATTR_INDICATOR + "value"
         if not schema:
             schema = self.schema(recursive=True)
         elif not isinstance(schema, dict):
-            schema = {attr_value: None}
-        if attr_value in schema:
+            schema = {"_value_": None}
+        if "_value_" in schema:
             tolog = False
             if self.isleaf():
-                if schema[attr_value] or schema[attr_value] is None:
+                if schema["_value_"] or schema["_value_"] is None:
                     tolog = True
             else:
-                if schema[attr_value]:
+                if schema["_value_"]:
                     tolog = True
             if tolog:
                 logging.log(
                     get_logging_level(verbosity), "{}: {}".format(
-                        name, self.value))
+                        name, self._value_))
         for item_name in sorted(schema.keys()):
-            if item_name[0:1] == self.ATTR_INDICATOR:
+            if item_name[0:1] == "_" and item_name[-1:] == "_":
                 continue
             if not schema[item_name]:
                 continue
@@ -340,7 +339,7 @@ class Config():
             if isinstance(attr, Config):
                 attr.argument_parser(parser=parser, argprefix=arg_name)
             elif isinstance(attr, Options):
-                if attr.argoptions is False:
+                if attr._argoptions_ is False:
                     continue
                 options = attr.argument_options()
                 if "dest" in options:
