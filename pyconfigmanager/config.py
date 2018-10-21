@@ -85,7 +85,7 @@ class Config():
         if name == self.ATTR_SUBITEM:
             super().__setattr__(name, {})
         elif name in self.ATTR_NAMES:
-            self.setattr(name, None)
+            setattr(self, name, None)
         else:
             raise errors.AttributeError(
                 "Unexcepted attr name '{}'".format(name))
@@ -128,7 +128,8 @@ class Config():
             item = self.getitem(names, raw=True)
             if isinstance(value, Config):
                 value = getattr(value, "value")
-            return item.setattr("value", value)
+            item.value = value
+            return
         else:
             item = self.getitem(names[:-1], raw=True)
             if not names:
@@ -138,38 +139,6 @@ class Config():
             if not isinstance(value, Config):
                 value = Config(value)
             getattr(item, self.ATTR_SUBITEM)[name] = value
-
-    def setattr(self, name, value):
-        if name not in self.ATTR_NAMES:
-            raise errors.AttributeError(
-                "Unexcepted attr name '{}'".format(name))
-
-        if name == "argoptions":
-            if isinstance(value, ArgumentOptions):
-                pass
-            elif isinstance(value, dict):
-                value = ArgumentOptions(**value)
-            else:
-                value = bool(value)
-        elif name == "type":
-            if value is not None:
-                if isinstance(value, type):
-                    value = utils.typename(value)
-                else:
-                    value = str(value)
-                if self.value is not None:
-                    super().__setattr__("value",
-                                        utils.convert_type(self.value, value))
-                if self.max is not None:
-                    super().__setattr__("max",
-                                        utils.convert_type(self.max, value))
-                if self.min is not None:
-                    super().__setattr__("min",
-                                        utils.convert_type(self.min, value))
-        elif name == "max" or name == "min" or name == "value":
-            if (self.type is not None and value is not None):
-                value = utils.convert_type(value, self.type)
-        return super().__setattr__(name, value)
 
     def items(self, raw=None):
         result = []
@@ -216,11 +185,11 @@ class Config():
         schema = normalize_schema(schema)
         if not merge:
             for name in self.ATTR_NAMES:
-                self.setattr(name, None)
+                setattr(self, name, None)
             super().__setattr__(self.ATTR_SUBITEM, {})
         for name in sorted(schema.keys()):
             if name[0] == self.ATTR_INDICATOR:
-                self.setattr(name[1:], schema[name])
+                setattr(self, name[1:], schema[name])
             elif name not in self:
                 self.setitem(name, Config(schema[name]), raw=True)
             else:
@@ -403,7 +372,7 @@ class Config():
                 attr = self.getattr(match_name, raw=True)
                 if isinstance(attr, Options):
                     if match_index == len(names) - 1:
-                        self.setattr(match_name, value)
+                        setattr(self, match_name, value)
                         return
                 elif isinstance(attr, Config):
                     if match_index < len(names) - 1:
@@ -494,7 +463,7 @@ class Config():
                         format(name, values[name]))
                 attr.update_values(values[name])
             elif isinstance(attr, Options):
-                self.setattr(name, values[name], raw=False)
+                setattr(self, name, values[name], raw=False)
 
     def dump_config(self,
                     filename="",

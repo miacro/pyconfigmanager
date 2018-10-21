@@ -161,36 +161,36 @@ class TestConfig(unittest.TestCase):
         self.assertEqual(config.value, 123)
         self.assertEqual(config.min, 56)
         self.assertEqual(config.max, None)
-        config.setattr("value", 456)
+        config.value = 456
         self.assertEqual(config.type, "int")
         self.assertEqual(config.value, 456)
         self.assertEqual(config.min, 56)
         self.assertEqual(config.max, None)
-        config.setattr("min", 500)
+        config.min = 500
         self.assertEqual(config.type, "int")
         self.assertEqual(config.value, 456)
         self.assertEqual(config.min, 500)
         self.assertEqual(config.max, None)
-        config.setattr("type", "str")
+        config.type = "str"
         self.assertEqual(config.type, "str")
         self.assertEqual(config.value, "456")
         self.assertEqual(config.min, "500")
         self.assertEqual(config.max, None)
-        self.assertRaises(errors.AttributeError, config.setattr, "subitems", {
+        self.assertRaises(errors.ItemError, setattr, config, "subitems", {
             "a": 1
         })
-        self.assertRaises(errors.AttributeError, config.setattr, "__dict__", {
-            "a": 1
-        })
-        self.assertRaises(errors.AttributeError, config.setattr, "abc", 12)
         self.assertRaises(errors.AttributeError, setattr, config, "__dict__", {
             "a": 1
         })
-        config.setattr("argoptions", {"default": 12, "type": int})
+        self.assertRaises(errors.ItemError, setattr, config, "abc", 12)
+        self.assertRaises(errors.AttributeError, setattr, config, "__dict__", {
+            "a": 1
+        })
+        config.argoptions = {"default": 12, "type": int}
         self.assertIsInstance(config.argoptions, options.ArgumentOptions)
-        config.setattr("argoptions", None)
+        config.argoptions = None
         self.assertIs(config.argoptions, False)
-        config.setattr("argoptions", "12")
+        config.argoptions = "12"
         self.assertIs(config.argoptions, True)
 
     def test_delattr(self):
@@ -300,7 +300,7 @@ class TestConfig(unittest.TestCase):
         self.assertEqual(config.a, 45)
         config.setitem("a", None, raw=False)
         self.assertEqual(config.a, None)
-        config.getitem("a", raw=True).setattr("type", None)
+        config.getitem("a", raw=True).type = None
         config.setitem("a", {"a": 1, "b": 2, ".type": "int"}, raw=False)
         self.assertDictEqual(config.a, {"a": 1, "b": 2, ".type": "int"})
         config.setitem("a", Config({".value": 12}), raw=False)
