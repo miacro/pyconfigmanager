@@ -4,3 +4,7 @@ class AttributeError(Exception):
 
 class ItemError(Exception):
     pass
+
+
+class TypeError(Exception):
+    pass
