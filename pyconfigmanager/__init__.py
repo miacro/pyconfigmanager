@@ -1,7 +1,7 @@
 from pyconfigmanager import utils
 from .config import Config
 import os
-from . import logging
+from . import logger
 
 
 def getconfig(schema=[], values=[], **kwargs):

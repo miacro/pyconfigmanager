@@ -20,7 +20,7 @@ class Config():
         return super(Config, self).__new__(self)
 
     def __iter__(self):
-        for name in self.getattr(self.ATTR_SUBITEM):
+        for name in getattr(self, self.ATTR_SUBITEM):
             yield name
 
     def __repr__(self):
@@ -33,13 +33,14 @@ class Config():
         return self.setitem(name, value, raw=None)
 
     def __delitem__(self, name):
-        if name not in self.getattr(self.ATTR_SUBITEM):
+        if name not in getattr(self, self.ATTR_SUBITEM):
             raise errors.ItemError("'{}' object has no item '{}'".format(
                 self.__class__.__name__, name))
-        del self.getattr(self.ATTR_SUBITEM)[name]
+        del getattr(self, self.ATTR_SUBITEM)[name]
 
     def __getattribute__(self, name):
-        if name in dir(Config):
+        if (name in dir(Config) or name in Config.ATTR_NAMES
+                or name == Config.ATTR_SUBITEM):
             return super().__getattribute__(name)
         return super().__getattribute__("getitem")(name, raw=None)
 
@@ -47,7 +48,38 @@ class Config():
         if name in dir(Config):
             raise errors.AttributeError(
                 "Can't modify reserved attr '{}'".format(name))
-        return super().__getattribute__("setitem")(name, value, raw=None)
+        elif name in self.ATTR_NAMES:
+            if name == "argoptions":
+                if isinstance(value, ArgumentOptions):
+                    pass
+                elif isinstance(value, dict):
+                    value = ArgumentOptions(**value)
+                else:
+                    value = bool(value)
+            elif name == "type":
+                if value is not None:
+                    if isinstance(value, type):
+                        value = utils.typename(value)
+                    else:
+                        value = str(value)
+                    if self.value is not None:
+                        super().__setattr__("value",
+                                            utils.convert_type(
+                                                self.value, value))
+                    if self.max is not None:
+                        super().__setattr__("max",
+                                            utils.convert_type(
+                                                self.max, value))
+                    if self.min is not None:
+                        super().__setattr__("min",
+                                            utils.convert_type(
+                                                self.min, value))
+            elif name == "max" or name == "min" or name == "value":
+                if (self.type is not None and value is not None):
+                    value = utils.convert_type(value, self.type)
+            return super().__setattr__(name, value)
+        else:
+            return super().__getattribute__("setitem")(name, value, raw=None)
 
     def __delattr__(self, name):
         if name == self.ATTR_SUBITEM:
@@ -59,7 +91,7 @@ class Config():
                 "Unexcepted attr name '{}'".format(name))
 
     def isleaf(self):
-        return len(self.getattr(self.ATTR_SUBITEM)) == 0
+        return len(getattr(self, self.ATTR_SUBITEM)) == 0
 
     def getitem(self, name, raw=None):
         if not name:
@@ -69,7 +101,7 @@ class Config():
             if raw:
                 return self
             else:
-                return self.getattr("value")
+                return self.value
 
         if not (isinstance(name, list) or isinstance(name, tuple)):
             names = [name]
@@ -78,10 +110,10 @@ class Config():
 
         name = names[0]
         names = names[1:]
-        if name not in self.getattr(self.ATTR_SUBITEM):
+        if name not in getattr(self, self.ATTR_SUBITEM):
             raise errors.ItemError("'{}' object has no item '{}'".format(
                 self.__class__.__name__, name))
-        return self.getattr(self.ATTR_SUBITEM)[name].getitem(names, raw=raw)
+        return getattr(self, self.ATTR_SUBITEM)[name].getitem(names, raw=raw)
 
     def setitem(self, name, value, raw=None):
         if name:
@@ -95,7 +127,7 @@ class Config():
         if not raw:
             item = self.getitem(names, raw=True)
             if isinstance(value, Config):
-                value = value.getattr("value")
+                value = getattr(value, "value")
             return item.setattr("value", value)
         else:
             item = self.getitem(names[:-1], raw=True)
@@ -105,13 +137,7 @@ class Config():
             name = names[-1]
             if not isinstance(value, Config):
                 value = Config(value)
-            item.getattr(self.ATTR_SUBITEM)[name] = value
-
-    def getattr(self, name):
-        if name not in self.ATTR_NAMES + (self.ATTR_SUBITEM, ):
-            raise errors.AttributeError(
-                "Unexcepted attr name '{}'".format(name))
-        return super().__getattribute__(name)
+            getattr(item, self.ATTR_SUBITEM)[name] = value
 
     def setattr(self, name, value):
         if name not in self.ATTR_NAMES:
@@ -131,21 +157,18 @@ class Config():
                     value = utils.typename(value)
                 else:
                     value = str(value)
-                if self.getattr("value") is not None:
+                if self.value is not None:
                     super().__setattr__("value",
-                                        utils.convert_type(
-                                            self.getattr("value"), value))
-                if self.getattr("max") is not None:
+                                        utils.convert_type(self.value, value))
+                if self.max is not None:
                     super().__setattr__("max",
-                                        utils.convert_type(
-                                            self.getattr("max"), value))
-                if self.getattr("min") is not None:
+                                        utils.convert_type(self.max, value))
+                if self.min is not None:
                     super().__setattr__("min",
-                                        utils.convert_type(
-                                            self.getattr("min"), value))
+                                        utils.convert_type(self.min, value))
         elif name == "max" or name == "min" or name == "value":
-            if (self.getattr("type") is not None and value is not None):
-                value = utils.convert_type(value, self.getattr("type"))
+            if (self.type is not None and value is not None):
+                value = utils.convert_type(value, self.type)
         return super().__setattr__(name, value)
 
     def items(self, raw=None):
@@ -157,7 +180,7 @@ class Config():
     def attrs(self):
         result = []
         for name in self.ATTR_NAMES:
-            result.append((name, self.getattr(name)))
+            result.append((name, getattr(self, name)))
         return result
 
     def values(self):
@@ -165,7 +188,7 @@ class Config():
         for name in self:
             item = self.getitem(name, raw=True)
             if item.isleaf():
-                result[name] = item.getattr("value")
+                result[name] = item.value
             else:
                 result[name] = item.values()
         return result
@@ -216,15 +239,15 @@ class Config():
         else:
             checker = schema
 
-        value = self.getattr("value")
-        check_type = checker.getattr("type")
-        check_min = checker.getattr("min")
-        check_max = checker.getattr("max")
+        value = self.value
+        check_type = checker.type
+        check_min = checker.min
+        check_max = checker.max
         if show_name:
             message = "Item '{}': value ".format(show_name)
         else:
             message = "Item value "
-        if checker.getattr("required"):
+        if checker.required:
             assert value is not None, message + "required"
         if check_type is not None:
             assert isinstance(value, utils.locate_type(check_type)), (
@@ -280,7 +303,7 @@ class Config():
             if tolog:
                 logging.log(
                     get_logging_level(verbosity), "{}: {}".format(
-                        name, self.getattr("value")))
+                        name, self.value))
         for item_name in sorted(schema.keys()):
             if item_name[0:1] == self.ATTR_INDICATOR:
                 continue
@@ -336,8 +359,8 @@ class Config():
                     ["{}.".format(name) for name in parentnames])
                 arg_name += attr_name
                 subparser.set_defaults(**{command_attrname: arg_name})
-                self.getattr(
-                    attr_name, raw=True).argument_parser(
+                getattr(
+                    self, attr_name, raw=True).argument_parser(
                         parser=subparser,
                         subcommands=subcommands[attr_name],
                         parentnames=parentnames + [attr_name])
