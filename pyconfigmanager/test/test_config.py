@@ -348,6 +348,49 @@ class TestConfig(unittest.TestCase):
             }
         })
 
+    def test_values_setter(self):
+        config = Config({
+            "a": 1,
+            "b": {
+                "c": 2
+            },
+            "c": None,
+            "d": {
+                "e": {
+                    "f": "hello"
+                }
+            }
+        })
+
+        def raiseerror():
+            config._values_ = {"b": {"d": 4}}
+
+        self.assertRaises(errors.ItemError, raiseerror)
+        config._values_ = {"c": {"c": 1}, "a": {"c": 1}, "b": 12}
+        self.assertDictEqual(config.c, {"c": 1})
+        self.assertIs(config.a, None)
+        self.assertEqual(config.b._value_, 12)
+        config._values_ = {
+            "a": 2.34,
+            "b": {
+                "_value_": 45,
+                "c": 5
+            },
+            "d": {
+                "e": {
+                    "_value_": 1000,
+                    "f": {
+                        "g": 12
+                    }
+                }
+            }
+        }
+        self.assertEqual(config.a, 2)
+        self.assertEqual(config.b.c, 5)
+        self.assertEqual(config.d.e.f, "{'g': 12}")
+        self.assertEqual(config.b._value_, 45)
+        self.assertEqual(config.d.e._value_, 1000)
+
     def test_schema(self):
         config = Config({
             "a": 12,
@@ -909,36 +952,6 @@ class TestConfig(unittest.TestCase):
                 "subcommand": "b",
                 "command": "",
             })
-
-    def test_update_values(self):
-        config = Config({"a": 1, "b": {"c": 2}, "d": {"e": {"f": "hello"}}})
-        self.assertRaises(
-            ValueError, config.update_values, values={
-                "a": 2.25,
-                "b": 12
-            })
-        self.assertRaises(AttributeError, config.update_values, {
-            "a": 2.34,
-            "b": {
-                "d": 12
-            }
-        })
-        config.update_values({
-            "a": 2.34,
-            "b": {
-                "c": 5
-            },
-            "d": {
-                "e": {
-                    "f": {
-                        "g": 12
-                    }
-                }
-            }
-        })
-        self.assertEqual(config.a, 2)
-        self.assertEqual(config.b.c, 5)
-        self.assertEqual(config.d.e.f, "{'g': 12}")
 
     def test_dump_config(self):
         with tempfile.NamedTemporaryFile("wt") as temp_file:

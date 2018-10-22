@@ -18,6 +18,7 @@ class Config():
     ATTR_NAMES = ("_type_", "_value_", "_required_", "_min_", "_max_",
                   "_help_", "_argoptions_")
     ATTR_ITEMS = "_items_"
+    ATTR_ACCESSOR = ("_schema_", "_values_")
 
     def __init__(self, schema=None):
         super().__setattr__(self.ATTR_ITEMS, {})
@@ -83,7 +84,7 @@ class Config():
             return item
 
     def __setattr__(self, name, value):
-        if name == "_schema_":
+        if name in self.ATTR_ACCESSOR:
             return super().__setattr__(name, value)
         elif name in dir(Config):
             raise errors.AttributeError(
@@ -155,6 +156,21 @@ class Config():
             else:
                 result[name] = item._values_
         return result
+
+    @_values_.setter
+    def _values_(self, values):
+        if "_value_" in values:
+            self._value_ = values["_value_"]
+        for name in values:
+            if isattrname(name):
+                continue
+            item = self[name]
+            if item._isleaf_:
+                item._value_ = values[name]
+            elif isinstance(values[name], dict):
+                item._values_ = values[name]
+            else:
+                item._value_ = values[name]
 
     @property
     def _schema_(self):
@@ -443,18 +459,6 @@ class Config():
         args = parser.parse_args(arguments)
         self.update_values_by_arguments(args, subcommands=subcommands)
         return args
-
-    def update_values(self, values):
-        for name in values:
-            attr = self.getattr(name, raw=True)
-            if isinstance(attr, Config):
-                if not isinstance(values[name], dict):
-                    raise ValueError(
-                        "'values[{}]' == '{}' is not instance of 'dict'".
-                        format(name, values[name]))
-                attr.update_values(values[name])
-            elif isinstance(attr, Options):
-                setattr(self, name, values[name], raw=False)
 
     def dump_config(self,
                     filename="",
