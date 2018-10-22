@@ -7,6 +7,13 @@ import sys
 from . import errors
 
 
+def isattrname(name):
+    if len(name) > 2 and name[0:1] == "_" and name[-1:] == "_":
+        return True
+    else:
+        return False
+
+
 class Config():
     ATTR_NAMES = ("_type_", "_value_", "_required_", "_min_", "_max_",
                   "_help_", "_argoptions_")
@@ -172,7 +179,7 @@ class Config():
             return
         schema = normalize_schema(value)
         for name in sorted(schema.keys()):
-            if name[0:1] == "_" and name[-1:] == "_":
+            if isattrname(name):
                 if name not in Config.ATTR_NAMES:
                     raise errors.AttributeError(
                         "Unexcepted attr '{}'".format(name))
@@ -189,8 +196,7 @@ class Config():
         elif not isinstance(schema, Config):
             checker = Config({
                 name: value
-                for name, value in schema.items()
-                if name[0:1] == "_" and name[-1:] == "_"
+                for name, value in schema.items() if isattrname(name)
             })
         else:
             checker = schema
@@ -223,12 +229,11 @@ class Config():
         self.assert_value(
             schema={
                 name: value
-                for name, value in schema.items()
-                if name[0:1] == "_" and name[-1:] == "_"
+                for name, value in schema.items() if isattrname(name)
             },
             name=name)
         for item_name in schema:
-            if item_name[0:1] == "_" and item_name[-1:] == "_":
+            if isattrname(item_name):
                 continue
             if not schema[item_name]:
                 continue
@@ -260,7 +265,7 @@ class Config():
                     get_logging_level(verbosity), "{}: {}".format(
                         name, self._value_))
         for item_name in sorted(schema.keys()):
-            if item_name[0:1] == "_" and item_name[-1:] == "_":
+            if isattrname(item_name):
                 continue
             if not schema[item_name]:
                 continue
