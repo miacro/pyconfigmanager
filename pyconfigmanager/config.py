@@ -23,7 +23,7 @@ class Config():
             yield name
 
     def __repr__(self):
-        return str(self.values())
+        return str(self._values_)
 
     def __getitem__(self, name):
         if not name:
@@ -42,7 +42,18 @@ class Config():
         return getattr(self, self.ATTR_ITEMS)[name][names]
 
     def __setitem__(self, name, value):
-        return self.setitem(name, value, raw=None)
+        if name:
+            if not (isinstance(name, list) or isinstance(name, tuple)):
+                names = [name]
+            else:
+                names = name
+        else:
+            names = []
+
+        item = self[names]
+        if isinstance(value, Config):
+            value = value._value_
+        item._value_ = value
 
     def __delitem__(self, name):
         if name not in getattr(self, self.ATTR_ITEMS):
@@ -96,7 +107,7 @@ class Config():
                     value = utils.convert_type(value, self._type_)
             return super().__setattr__(name, value)
         else:
-            return super().__getattribute__("setitem")(name, value, raw=None)
+            self[name] = value
 
     def __delattr__(self, name):
         if name == self.ATTR_ITEMS:
@@ -110,31 +121,6 @@ class Config():
     @property
     def _isleaf_(self):
         return len(getattr(self, self.ATTR_ITEMS)) == 0
-
-    def setitem(self, name, value, raw=None):
-        if name:
-            if not (isinstance(name, list) or isinstance(name, tuple)):
-                names = [name]
-            else:
-                names = name
-        else:
-            names = []
-
-        if not raw:
-            item = self[names]
-            if isinstance(value, Config):
-                value = value._value_
-            item._value_ = value
-            return
-        else:
-            item = self[names[:-1]]
-            if not names:
-                raise errors.ItemError(
-                    "Unexcepted item name '{}'".format(names))
-            name = names[-1]
-            if not isinstance(value, Config):
-                value = Config(value)
-            getattr(item, self.ATTR_ITEMS)[name] = value
 
     @property
     def _attrs_(self):
@@ -159,8 +145,8 @@ class Config():
         result = {}
         for name in self._attrs_:
             result[name] = self._attrs_[name]
-        for name in self._items_:
-            result[name] = self._items_[name]._schema_
+        for name in getattr(self, self.ATTR_ITEMS):
+            result[name] = getattr(self, self.ATTR_ITEMS)[name]._schema_
         return result
 
     def update_schema(self, schema={}, merge=True):
@@ -184,7 +170,7 @@ class Config():
                         "Unexcepted attr '{}'".format(name))
                 setattr(self, name, schema[name])
             elif name not in self:
-                self.setitem(name, Config(schema[name]), raw=True)
+                getattr(self, self.ATTR_ITEMS)[name] = Config(schema[name])
             else:
                 self[name].update_schema(schema[name])
 

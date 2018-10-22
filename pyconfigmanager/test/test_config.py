@@ -274,66 +274,44 @@ class TestConfig(unittest.TestCase):
 
     def test_setitem(self):
         config = Config({"a": 1, "b": 2, "sub": {"c": "hello", "d": 0.9}})
-        config.setitem("a", 12, raw=False)
+        config["a"] = 12
         self.assertEqual(config.a, 12)
-        config.setitem("a", "45", raw=False)
+        config["a"] = Config(45)
         self.assertEqual(config.a, 45)
-        config.setitem("a", None, raw=False)
+        config["a"] = None
         self.assertEqual(config.a, None)
         config["a"]._type_ = None
-        config.setitem("a", {"a": 1, "b": 2, "_type_": "int"}, raw=False)
+        config["a"] = {"a": 1, "b": 2, "_type_": "int"}
         self.assertDictEqual(config.a, {"a": 1, "b": 2, "_type_": "int"})
-        config.setitem("a", Config({"_value_": 12}), raw=False)
+        config["a"] = Config({"a": 4, "b": 5, "_type_": "int"})
+        self.assertEqual(config.a, None)
+        config["a"] = Config({"_value_": 12})
         self.assertIsInstance(config["a"], Config)
         self.assertEqual(config["a"]._type_, None)
         self.assertEqual(config.a, 12)
-        self.assertRaises(
-            errors.ItemError, config.setitem, "subb", 123, raw=False)
-        self.assertRaises(
-            errors.ItemError, config.setitem, ["a", "d"], 12, raw=False)
-
-        config.setitem("a", "123", raw=True)
-        self.assertIsInstance(config["a"], Config)
-        self.assertEqual(config.a, "123")
-        config.setitem("a", {"a": 12, "b": 34}, raw=True)
-        self.assertIsInstance(config.a, Config)
-        self.assertIsInstance(config.a["a"], Config)
-        self.assertEqual(config.a.a, 12)
-        self.assertIsInstance(config.a["b"], Config)
-        self.assertEqual(config.a.b, 34)
-        config.setitem("sub", {"a": 12, "b": 34}, raw=True)
-        self.assertIsInstance(config.sub, Config)
-        self.assertIsInstance(config.sub["a"], Config)
-        self.assertEqual(config.sub.a, 12)
-        self.assertIsInstance(config.sub["b"], Config)
-        self.assertEqual(config.sub.b, 34)
-        self.assertRaises(
-            errors.ItemError,
-            config.setitem, ["sub", "b", "c", "d"],
-            34,
-            raw=True)
-        config.setitem(["sub", "b", "c"], 12, raw=True)
-        self.assertEqual(config.sub.b.c, 12)
+        self.assertRaises(errors.ItemError, config.__setitem__, "subb", 123)
+        self.assertRaises(errors.ItemError, config.__setitem__, ["a", "d"], 12)
 
         config.sub = 124
         self.assertEqual(config.sub._value_, 124)
         self.assertEqual(config.sub._type_, None)
-        config.sub.a = "12345"
-        self.assertEqual(config.sub.a, 12345)
+        print(config.sub._items_)
+        config.sub.c = 12345
+        self.assertEqual(config.sub.c, "12345")
 
         config["sub"] = "125"
         self.assertEqual(config["sub"]._value_, "125")
-        config["sub"]["a"] = "12346"
-        self.assertEqual(config.sub.a, 12346)
+        config["sub"]["c"] = 12346
+        self.assertEqual(config.sub.c, "12346")
 
-        config.setitem([], 12)
+        config[None] = 12
         self.assertEqual(config._value_, 12)
-        config.setitem(["sub"], "678")
+        config["sub"] = "678"
         self.assertEqual(config.sub._value_, "678")
-        config.setitem(["sub", "a"], "789")
-        self.assertEqual(config.sub.a, 789)
-        self.assertRaises(errors.ItemError, config.setitem, ["sub", "a", "b"],
-                          "456")
+        config["sub", "c"] = "789"
+        self.assertEqual(config.sub.c, "789")
+        self.assertRaises(errors.ItemError, config.__setitem__,
+                          ["sub", "a", "b"], "456")
 
     def test_delitem(self):
         config = Config({"a": 12, "b": 34})
