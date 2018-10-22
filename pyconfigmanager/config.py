@@ -13,7 +13,10 @@ class Config():
     ATTR_ITEMS = "_items_"
 
     def __init__(self, schema=None):
-        self.update_schema(schema=schema, merge=False)
+        super().__setattr__(self.ATTR_ITEMS, {})
+        for name in self.ATTR_NAMES:
+            setattr(self, name, None)
+        self._schema_ = schema
 
     def __new__(self, schema={}):
         return super(Config, self).__new__(self)
@@ -73,7 +76,9 @@ class Config():
             return item
 
     def __setattr__(self, name, value):
-        if name in dir(Config):
+        if name == "_schema_":
+            return super().__setattr__(name, value)
+        elif name in dir(Config):
             raise errors.AttributeError(
                 "Can't modify reserved attr '{}'".format(name))
         elif name in self.ATTR_NAMES:
@@ -114,6 +119,10 @@ class Config():
             super().__setattr__(name, {})
         elif name in self.ATTR_NAMES:
             setattr(self, name, None)
+        elif name == "_schema_":
+            super().__setattr__(self.ATTR_ITEMS, {})
+            for name in self.ATTR_NAMES:
+                setattr(self, name, None)
         else:
             raise errors.AttributeError(
                 "Unexcepted attr name '{}'".format(name))
@@ -149,7 +158,8 @@ class Config():
             result[name] = getattr(self, self.ATTR_ITEMS)[name]._schema_
         return result
 
-    def update_schema(self, schema={}, merge=True):
+    @_schema_.setter
+    def _schema_(self, value={}):
         def normalize_schema(schema):
             if not isinstance(schema, dict):
                 schema = {"_value_": schema}
@@ -158,11 +168,9 @@ class Config():
                     schema["_type_"] = utils.typename(type(schema["_value_"]))
             return schema
 
-        schema = normalize_schema(schema)
-        if not merge:
-            for name in self.ATTR_NAMES:
-                setattr(self, name, None)
-            super().__setattr__(self.ATTR_ITEMS, {})
+        if value is None:
+            return
+        schema = normalize_schema(value)
         for name in sorted(schema.keys()):
             if name[0:1] == "_" and name[-1:] == "_":
                 if name not in Config.ATTR_NAMES:
@@ -172,7 +180,7 @@ class Config():
             elif name not in self:
                 getattr(self, self.ATTR_ITEMS)[name] = Config(schema[name])
             else:
-                self[name].update_schema(schema[name])
+                self[name]._schema_ = schema[name]
 
     def assert_value(self, schema=None, name=""):
         show_name = name

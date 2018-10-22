@@ -200,6 +200,11 @@ class TestConfig(unittest.TestCase):
         self.assertIs(config._min_, None)
         delattr(config, "_items_")
         self.assertEqual(len(config._items_), 0)
+        config = Config({"a": 12, "b": 34, "_value_": 12})
+        del config._schema_
+        self.assertEqual(len(config._items_), 0)
+        self.assertEqual(config._type_, None)
+        self.assertEqual(config._value_, None)
 
     def test_attrs(self):
         config = Config({
@@ -463,34 +468,25 @@ class TestConfig(unittest.TestCase):
         schema = config._schema_
         self.assertDictEqual(schema, compare_result)
 
-    def test_update_schema(self):
+    def test_schema_setter(self):
         config = Config({"a": 1, "b": 2})
         self.assertEqual(config.a, 1)
         self.assertEqual(config.b, 2)
         self.assertEqual(config["b"]._type_, "int")
-        config.update_schema(
-            {
-                "a": {
-                    "a": 1
-                },
-                "b": {
-                    "_type_": str,
-                    "_value_": 123
-                }
-            }, merge=False)
+        config._schema_ = {"a": {"a": 1}, "b": {"_type_": str, "_value_": 123}}
         self.assertIsInstance(config.a, Config)
         self.assertEqual(config.a.a, 1)
         self.assertEqual(config["b"]._type_, "str")
         self.assertEqual(config.b, "123")
         self.assertEqual(len(config._items_), 2)
 
-        config.update_schema(None, merge=True)
+        config._schema_ = None
         self.assertEqual(config.a.a, 1)
         self.assertEqual(len(config._items_), 2)
-        config.update_schema(None, merge=False)
+        del config._schema_
         self.assertEqual(len(config._items_), 0)
 
-        config = Config({
+        config._schema_ = {
             "a": 1,
             "b": 2,
             "c": {
@@ -500,22 +496,22 @@ class TestConfig(unittest.TestCase):
                     "required": True,
                 }
             }
-        })
+        }
         self.assertEqual(config.a, 1)
         self.assertEqual(config.b, 2)
         self.assertEqual(config["b"]._type_, "int")
         self.assertEqual(config.c.b["required"]._value_, True)
         self.assertEqual(config.c.b._required_, None)
         self.assertEqual(config.c.b._type_, "str")
-        config.update_schema("13", merge=True)
+        config._schema_ = "13"
         self.assertEqual(config._type_, "str")
         self.assertEqual(config._value_, "13")
         self.assertEqual(len(config._items_), 3)
         self.assertEqual(config.c.b["required"]._value_, True)
-        config.update_schema(12, merge=False)
+        config._schema_ = 12
         self.assertEqual(config._type_, "int")
         self.assertEqual(config._value_, 12)
-        self.assertEqual(len(config._items_), 0)
+        self.assertEqual(len(config._items_), 3)
 
         config = Config({
             "a": 1,
@@ -528,25 +524,23 @@ class TestConfig(unittest.TestCase):
                 }
             }
         })
-        config.update_schema(
-            {
-                "a": {
-                    "_type_": "str"
-                },
-                "b": {
-                    "a": 12
-                },
-                "c": {
-                    "a": {
-                        "d": 1
-                    },
-                    "b": 12
-                },
-                "d": {
-                    "f": 12
-                }
+        config._schema_ = {
+            "a": {
+                "_type_": "str"
             },
-            merge=True)
+            "b": {
+                "a": 12
+            },
+            "c": {
+                "a": {
+                    "d": 1
+                },
+                "b": 12
+            },
+            "d": {
+                "f": 12
+            }
+        }
         self.assertIsInstance(config["a"], Config)
         self.assertEqual(config.a, "1")
         self.assertIsInstance(config["b"], Config)
