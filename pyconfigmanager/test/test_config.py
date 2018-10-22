@@ -23,15 +23,15 @@ class TestConfig(unittest.TestCase):
         self.assertIsInstance(config, Config)
         self.assertEqual(config._type_, "str")
         self.assertEqual(config._value_, None)
-        self.assertEqual(config["value"], 12)
-        self.assertIsInstance(config.getitem("value", raw=True), Config)
+        self.assertEqual(config["value"]._value_, 12)
+        self.assertIsInstance(config["value"], Config)
 
         config = Config({"type": "str", "_value_": [1, 2, 3]})
         self.assertIsInstance(config, Config)
         self.assertEqual(config._type_, "list")
-        self.assertEqual(config["type"], "str")
+        self.assertEqual(config["type"]._value_, "str")
         self.assertEqual(config._value_, [1, 2, 3])
-        self.assertIsInstance(config.getitem("type", raw=True), Config)
+        self.assertIsInstance(config["type"], Config)
 
         config = Config({"a": 1, "b": 2})
         config = Config(schema=config)
@@ -65,55 +65,44 @@ class TestConfig(unittest.TestCase):
         })
         self.assertIsInstance(config, Config)
 
-        self.assertIsInstance(config.getitem("type", raw=True), Config)
-        self.assertEqual(config.getitem("type", raw=True)._type_, "str")
-        self.assertEqual(config.getitem("type", raw=True)._value_, "str")
+        self.assertIsInstance(config["type"], Config)
+        self.assertEqual(config["type"]._type_, "str")
+        self.assertEqual(config["type"]._value_, "str")
 
-        self.assertIsInstance(config.getitem("value", raw=True), Config)
-        self.assertEqual(config.getitem("value", raw=True)._type_, "int")
-        self.assertEqual(config.getitem("value", raw=True)._value_, 12)
+        self.assertIsInstance(config["value"], Config)
+        self.assertEqual(config["value"]._type_, "int")
+        self.assertEqual(config["value"]._value_, 12)
 
-        self.assertIsInstance(config.getitem("none", raw=True), Config)
-        self.assertEqual(config.getitem("none", raw=True)._type_, None)
-        self.assertEqual(config.getitem("none", raw=True)._value_, None)
+        self.assertIsInstance(config["none"], Config)
+        self.assertEqual(config["none"]._type_, None)
+        self.assertEqual(config["none"]._value_, None)
 
-        self.assertIsInstance(config.getitem("item", raw=True), Config)
-        self.assertEqual(config.getitem("item", raw=True)._type_, "str")
-        self.assertEqual(config.getitem("item", raw=True)._value_, None)
-        self.assertEqual(config.getitem("item", raw=True)["value"], 123)
-        self.assertEqual(config.getitem("item", raw=True)["max"], 1000)
+        self.assertIsInstance(config["item"], Config)
+        self.assertEqual(config["item"]._type_, "str")
+        self.assertEqual(config["item"]._value_, None)
+        self.assertEqual(config["item"]["value"]._value_, 123)
+        self.assertEqual(config["item"]["max"]._value_, 1000)
 
-        self.assertIsInstance(config.getitem("sub", raw=True), Config)
-        self.assertIsInstance(
-            config.getitem("sub", raw=True).getitem("a", raw=True), Config)
-        self.assertIsInstance(
-            config.getitem("sub", raw=True).getitem("a", raw=True).getitem(
-                "c", raw=True), Config)
-        self.assertEqual(
-            config.getitem(["sub", "a", "c"], raw=True)._type_, "int")
-        self.assertEqual(config.getitem(["sub", "a", "c"], raw=False), 12)
-        self.assertIsInstance(
-            config.getitem(["sub", "a", "d"], raw=True), Config)
-        self.assertEqual(
-            config.getitem(["sub", "a", "d"], raw=True)._type_, "list")
-        self.assertEqual(config.getitem(["sub", "a", "d"]), [1, 2, 3])
-        self.assertIsInstance(
-            config.getitem(["sub", "a", "e"], raw=True), Config)
-        self.assertEqual(
-            config.getitem(["sub", "a", "e"], raw=True)._type_, "int")
-        self.assertEqual(config.getitem(["sub", "a", "e"]), None)
+        self.assertIsInstance(config["sub"], Config)
+        self.assertIsInstance(config["sub"]["a"], Config)
+        self.assertIsInstance(config["sub"]["a"]["c"], Config)
+        self.assertEqual(config["sub", "a", "c"]._type_, "int")
+        self.assertEqual(config["sub", "a", "c"]._value_, 12)
+        self.assertIsInstance(config["sub", "a", "d"], Config)
+        self.assertEqual(config["sub", "a", "d"]._type_, "list")
+        self.assertEqual(config["sub", "a", "d"]._value_, [1, 2, 3])
+        self.assertIsInstance(config["sub", "a", "e"], Config)
+        self.assertEqual(config["sub", "a", "e"]._type_, "int")
+        self.assertEqual(config["sub", "a", "e"]._value_, None)
 
-        self.assertIsInstance(
-            config.getitem(["sub", "a", "f"], raw=True), Config)
-        self.assertIsInstance(
-            config.getitem(["sub", "a", "f", "end"], raw=True), Config)
-        self.assertEqual(
-            config.getitem(["sub", "a", "f", "end"], raw=True)._type_, "int")
-        self.assertEqual(config.getitem(["sub", "a", "f", "end"]), 123)
+        self.assertIsInstance(config["sub", "a", "f"], Config)
+        self.assertIsInstance(config["sub", "a", "f", "end"], Config)
+        self.assertEqual(config["sub", "a", "f", "end"]._type_, "int")
+        self.assertEqual(config["sub", "a", "f", "end"]._value_, 123)
 
-        self.assertIsInstance(config.getitem(["sub", "b"], raw=True), Config)
-        self.assertEqual(config.getitem(["sub", "b"], raw=True)._type_, "str")
-        self.assertEqual(config.getitem(["sub", "b"]), "hello")
+        self.assertIsInstance(config["sub", "b"], Config)
+        self.assertEqual(config["sub", "b"]._type_, "str")
+        self.assertEqual(config["sub", "b"]._value_, "hello")
 
     def test_iter(self):
         config = Config({"a": 1, "b": 34})
@@ -136,14 +125,14 @@ class TestConfig(unittest.TestCase):
         })
         self.assertEqual(config._type_, "int")
         self.assertEqual(config._value_, 123)
-        self.assertEqual(config.getitem("a", raw=True)._type_, "int")
-        self.assertEqual(config.getitem("a", raw=True)._value_, 12)
+        self.assertEqual(config["a"]._type_, "int")
+        self.assertEqual(config["a"]._value_, 12)
         self.assertEqual(config.b._type_, None)
         self.assertEqual(config.b._value_, None)
         self.assertEqual(config.b._max_, None)
-        self.assertEqual(config.b.getitem("c", raw=True)._type_, "str")
+        self.assertEqual(config.b["c"]._type_, "str")
         self.assertEqual(config.b.c, "12")
-        self.assertEqual(config.getitem("c", raw=True)._type_, "str")
+        self.assertEqual(config["c"]._type_, "str")
         self.assertEqual(config.c, "123")
         self.assertRaises(errors.ItemError, getattr, config, "abc")
         config.__class__
@@ -250,51 +239,38 @@ class TestConfig(unittest.TestCase):
         })
 
         self.assertRaises(errors.ItemError, getattr, config, "abcd")
-        self.assertRaises(errors.ItemError, config.getitem, "abdd")
+        self.assertRaises(errors.ItemError, config.__getitem__, "abdd")
         self.assertEqual(config.a, 1)
         self.assertEqual(config.b, 2)
-        self.assertIsInstance(config.getitem("c", raw=True), Config)
+        self.assertIsInstance(config["c"], Config)
         self.assertEqual(config.c.d, 12)
+        self.assertEqual(config.c["d"]._value_, 12)
         self.assertEqual(config.c.e.f.g, 34)
-        self.assertEqual(config["a"], 1)
-        self.assertEqual(config["b"], 2)
-        self.assertEqual(config["c"]["d"], 12)
-        self.assertEqual(config["c"]["e"]["f"]["g"], 34)
 
-        self.assertEqual(config.getitem("a", raw=False), 1)
-        self.assertEqual(config.getitem("b", raw=False), 2)
-        self.assertIsInstance(config.getitem("c", raw=True), Config)
-        self.assertEqual(config.c.getitem("d", raw=False), 12)
-        self.assertEqual(config.c.e.f.getitem("g", raw=False), 34)
+        self.assertIsInstance(config["a"], Config)
+        self.assertEqual(config["a"]._type_, "int")
+        self.assertEqual(config["a"]._value_, 1)
+        self.assertIsInstance(config["b"], Config)
+        self.assertEqual(config["b"]._type_, "int")
+        self.assertEqual(config["b"]._value_, 2)
+        self.assertIsInstance(config["c"], Config)
+        self.assertIsInstance(config.c["d"], Config)
+        self.assertEqual(config.c["d"]._type_, "int")
+        self.assertEqual(config.c["d"]._value_, 12)
+        self.assertIsInstance(config.c.e.f["g"], Config)
+        self.assertEqual(config.c.e.f["g"]._type_, "int")
+        self.assertEqual(config.c.e.f["g"]._value_, 34)
 
-        self.assertIsInstance(config.getitem("a", raw=True), Config)
-        self.assertEqual(config.getitem("a", raw=True)._type_, "int")
-        self.assertEqual(config.getitem("a", raw=True)._value_, 1)
-        self.assertIsInstance(config.getitem("b", raw=True), Config)
-        self.assertEqual(config.getitem("b", raw=True)._type_, "int")
-        self.assertEqual(config.getitem("b", raw=True)._value_, 2)
-        self.assertIsInstance(config.getitem("c", raw=True), Config)
-        self.assertIsInstance(config.c.getitem("d", raw=True), Config)
-        self.assertEqual(config.c.getitem("d", raw=True)._type_, "int")
-        self.assertEqual(config.c.getitem("d", raw=True)._value_, 12)
-        self.assertIsInstance(config.c.e.f.getitem("g", raw=True), Config)
-        self.assertEqual(config.c.e.f.getitem("g", raw=True)._type_, "int")
-        self.assertEqual(config.c.e.f.getitem("g", raw=None), 34)
+        self.assertEqual(config["c", "e", "f", "g"]._value_, 34)
+        self.assertIsInstance(config[("c", "e", "f", "g")], Config)
+        self.assertEqual(config["c", "e", "f", "g"]._value_, 34)
+        self.assertIsInstance(config["c", "e"], Config)
+        self.assertIsInstance(config["c", "e", "f"], Config)
 
-        self.assertEqual(config.getitem("a", raw=None), 1)
-        self.assertEqual(config.getitem(["c", "e", "f", "g"]), 34)
-        self.assertIsInstance(
-            config.getitem(("c", "e", "f", "g"), raw=True), Config)
-        self.assertEqual(
-            config.getitem(("c", "e", "f", "g"), raw=True)._value_, 34)
-        self.assertIsInstance(config.getitem(["c", "e"]), Config)
-        self.assertIsInstance(
-            config.getitem(["c", "e", "f"], raw=None), Config)
-
-        self.assertIsInstance(config.getitem([]), Config)
-        self.assertIs(config.getitem(None), config)
-        self.assertIs(config.getitem([], raw=True), config)
-        self.assertEqual(config.getitem([], raw=False), 12)
+        self.assertIsInstance(config[()], Config)
+        self.assertIs(config[None], config)
+        self.assertIs(config[[]], config)
+        self.assertEqual(config[None]._value_, 12)
 
     def test_setitem(self):
         config = Config({"a": 1, "b": 2, "sub": {"c": "hello", "d": 0.9}})
@@ -304,12 +280,12 @@ class TestConfig(unittest.TestCase):
         self.assertEqual(config.a, 45)
         config.setitem("a", None, raw=False)
         self.assertEqual(config.a, None)
-        config.getitem("a", raw=True)._type_ = None
+        config["a"]._type_ = None
         config.setitem("a", {"a": 1, "b": 2, "_type_": "int"}, raw=False)
         self.assertDictEqual(config.a, {"a": 1, "b": 2, "_type_": "int"})
         config.setitem("a", Config({"_value_": 12}), raw=False)
-        self.assertIsInstance(config.getitem("a", raw=True), Config)
-        self.assertEqual(config.getitem("a", raw=True)._type_, None)
+        self.assertIsInstance(config["a"], Config)
+        self.assertEqual(config["a"]._type_, None)
         self.assertEqual(config.a, 12)
         self.assertRaises(
             errors.ItemError, config.setitem, "subb", 123, raw=False)
@@ -317,19 +293,19 @@ class TestConfig(unittest.TestCase):
             errors.ItemError, config.setitem, ["a", "d"], 12, raw=False)
 
         config.setitem("a", "123", raw=True)
-        self.assertIsInstance(config.getitem("a", raw=True), Config)
+        self.assertIsInstance(config["a"], Config)
         self.assertEqual(config.a, "123")
         config.setitem("a", {"a": 12, "b": 34}, raw=True)
         self.assertIsInstance(config.a, Config)
-        self.assertIsInstance(config.a.getitem("a", raw=True), Config)
+        self.assertIsInstance(config.a["a"], Config)
         self.assertEqual(config.a.a, 12)
-        self.assertIsInstance(config.a.getitem("b", raw=True), Config)
+        self.assertIsInstance(config.a["b"], Config)
         self.assertEqual(config.a.b, 34)
         config.setitem("sub", {"a": 12, "b": 34}, raw=True)
         self.assertIsInstance(config.sub, Config)
-        self.assertIsInstance(config.sub.getitem("a", raw=True), Config)
+        self.assertIsInstance(config.sub["a"], Config)
         self.assertEqual(config.sub.a, 12)
-        self.assertIsInstance(config.sub.getitem("b", raw=True), Config)
+        self.assertIsInstance(config.sub["b"], Config)
         self.assertEqual(config.sub.b, 34)
         self.assertRaises(
             errors.ItemError,
@@ -340,14 +316,13 @@ class TestConfig(unittest.TestCase):
         self.assertEqual(config.sub.b.c, 12)
 
         config.sub = 124
-        self.assertEqual(config.getitem("sub", raw=False), 124)
         self.assertEqual(config.sub._value_, 124)
         self.assertEqual(config.sub._type_, None)
         config.sub.a = "12345"
         self.assertEqual(config.sub.a, 12345)
 
         config["sub"] = "125"
-        self.assertEqual(config.getitem("sub", raw=False), "125")
+        self.assertEqual(config["sub"]._value_, "125")
         config["sub"]["a"] = "12346"
         self.assertEqual(config.sub.a, 12346)
 
@@ -514,7 +489,7 @@ class TestConfig(unittest.TestCase):
         config = Config({"a": 1, "b": 2})
         self.assertEqual(config.a, 1)
         self.assertEqual(config.b, 2)
-        self.assertEqual(config.getitem("b", raw=True)._type_, "int")
+        self.assertEqual(config["b"]._type_, "int")
         config.update_schema(
             {
                 "a": {
@@ -527,7 +502,7 @@ class TestConfig(unittest.TestCase):
             }, merge=False)
         self.assertIsInstance(config.a, Config)
         self.assertEqual(config.a.a, 1)
-        self.assertEqual(config.getitem("b", raw=True)._type_, "str")
+        self.assertEqual(config["b"]._type_, "str")
         self.assertEqual(config.b, "123")
         self.assertEqual(len(config._items_), 2)
 
@@ -550,15 +525,15 @@ class TestConfig(unittest.TestCase):
         })
         self.assertEqual(config.a, 1)
         self.assertEqual(config.b, 2)
-        self.assertEqual(config.getitem("b", raw=True)._type_, "int")
-        self.assertEqual(config.c.b["required"], True)
+        self.assertEqual(config["b"]._type_, "int")
+        self.assertEqual(config.c.b["required"]._value_, True)
         self.assertEqual(config.c.b._required_, None)
         self.assertEqual(config.c.b._type_, "str")
         config.update_schema("13", merge=True)
         self.assertEqual(config._type_, "str")
         self.assertEqual(config._value_, "13")
         self.assertEqual(len(config._items_), 3)
-        self.assertEqual(config.c.b["required"], True)
+        self.assertEqual(config.c.b["required"]._value_, True)
         config.update_schema(12, merge=False)
         self.assertEqual(config._type_, "int")
         self.assertEqual(config._value_, 12)
@@ -594,19 +569,19 @@ class TestConfig(unittest.TestCase):
                 }
             },
             merge=True)
-        self.assertIsInstance(config.getitem("a", raw=True), Config)
+        self.assertIsInstance(config["a"], Config)
         self.assertEqual(config.a, "1")
-        self.assertIsInstance(config.getitem("b", raw=True), Config)
-        self.assertIsInstance(config.b.getitem("a", raw=True), Config)
+        self.assertIsInstance(config["b"], Config)
+        self.assertIsInstance(config.b["a"], Config)
         self.assertEqual(config.b.a, 12)
-        self.assertEqual(config.getitem("b", raw=False), 2)
+        self.assertEqual(config["b"]._value_, 2)
         self.assertIsInstance(config.c.a, Config)
         self.assertEqual(config.c.a.d, 1)
-        self.assertEqual(config.c.b["required"], True)
-        self.assertEqual(config.c.getitem("b", raw=False), 12)
+        self.assertEqual(config.c.b["required"]._value_, True)
+        self.assertEqual(config.c["b"]._value_, 12)
         self.assertEqual(config.c.b._type_, "int")
-        self.assertEqual(config.c.getitem("b", raw=True)["required"], True)
-        self.assertIsInstance(config.d.getitem("f", raw=True), Config)
+        self.assertEqual(config.c["b"]["required"]._value_, True)
+        self.assertIsInstance(config.d["f"], Config)
         self.assertEqual(config.d.f, 12)
 
     def test_assert_values(self):
@@ -651,10 +626,7 @@ class TestConfig(unittest.TestCase):
             }
         })
         self.assertRaises(AssertionError, config.assert_values)
-        config.a.b.getitem(
-            "c", raw=True).assert_value(schema={
-                "_required_": False
-            })
+        config.a.b["c"].assert_value(schema={"_required_": False})
         config.assert_values(schema={"a": True})
         self.assertRaises(AssertionError, config.assert_values, {
             "a": True,

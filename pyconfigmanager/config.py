@@ -26,7 +26,20 @@ class Config():
         return str(self.values())
 
     def __getitem__(self, name):
-        return self.getitem(name, raw=None)
+        if not name:
+            return self
+
+        if not (isinstance(name, list) or isinstance(name, tuple)):
+            names = [name]
+        else:
+            names = name
+
+        name = names[0]
+        names = names[1:]
+        if name not in getattr(self, self.ATTR_ITEMS):
+            raise errors.ItemError("'{}' object has no item '{}'".format(
+                self.__class__.__name__, name))
+        return getattr(self, self.ATTR_ITEMS)[name][names]
 
     def __setitem__(self, name, value):
         return self.setitem(name, value, raw=None)
@@ -41,7 +54,12 @@ class Config():
         if (name in dir(Config) or name in Config.ATTR_NAMES
                 or name == Config.ATTR_ITEMS):
             return super().__getattribute__(name)
-        return super().__getattribute__("getitem")(name, raw=None)
+
+        item = self[name]
+        if item._isleaf_:
+            return item._value_
+        else:
+            return item
 
     def __setattr__(self, name, value):
         if name in dir(Config):
@@ -93,28 +111,6 @@ class Config():
     def _isleaf_(self):
         return len(getattr(self, self.ATTR_ITEMS)) == 0
 
-    def getitem(self, name, raw=None):
-        if not name:
-            if raw is None:
-                if not self._isleaf_:
-                    raw = True
-            if raw:
-                return self
-            else:
-                return self._value_
-
-        if not (isinstance(name, list) or isinstance(name, tuple)):
-            names = [name]
-        else:
-            names = name
-
-        name = names[0]
-        names = names[1:]
-        if name not in getattr(self, self.ATTR_ITEMS):
-            raise errors.ItemError("'{}' object has no item '{}'".format(
-                self.__class__.__name__, name))
-        return getattr(self, self.ATTR_ITEMS)[name].getitem(names, raw=raw)
-
     def setitem(self, name, value, raw=None):
         if name:
             if not (isinstance(name, list) or isinstance(name, tuple)):
@@ -125,13 +121,13 @@ class Config():
             names = []
 
         if not raw:
-            item = self.getitem(names, raw=True)
+            item = self[names]
             if isinstance(value, Config):
                 value = value._value_
             item._value_ = value
             return
         else:
-            item = self.getitem(names[:-1], raw=True)
+            item = self[names[:-1]]
             if not names:
                 raise errors.ItemError(
                     "Unexcepted item name '{}'".format(names))
@@ -151,7 +147,7 @@ class Config():
     def _values_(self):
         result = {}
         for name in self:
-            item = self.getitem(name, raw=True)
+            item = self[name]
             if item._isleaf_:
                 result[name] = item._value_
             else:
@@ -190,7 +186,7 @@ class Config():
             elif name not in self:
                 self.setitem(name, Config(schema[name]), raw=True)
             else:
-                self.getitem(name, raw=True).update_schema(schema[name])
+                self[name].update_schema(schema[name])
 
     def assert_value(self, schema=None, name=""):
         show_name = name
@@ -248,7 +244,7 @@ class Config():
                 show_name = item_name
             assert item_name in self, (
                 "'Config' object has no item '{}'".format(show_name))
-            item = self.getitem(item_name, raw=True)
+            item = self[item_name]
             if isinstance(schema[item_name], dict):
                 item.assert_values(schema=schema[item_name], name=show_name)
 
@@ -278,7 +274,7 @@ class Config():
                 show_name = "{}.{}".format(name, item_name)
             else:
                 show_name = item_name
-            item = self.getitem(item_name, raw=True)
+            item = self[item_name]
             item.logging_values(
                 schema=schema[item_name], verbosity=verbosity, name=show_name)
 
