@@ -10,7 +10,7 @@ from . import errors
 class Config():
     ATTR_NAMES = ("_type_", "_value_", "_required_", "_min_", "_max_",
                   "_help_", "_argoptions_")
-    ATTR_SUBITEM = "_subitems_"
+    ATTR_ITEMS = "_items_"
 
     def __init__(self, schema=None):
         self.update_schema(schema=schema, merge=False)
@@ -19,7 +19,7 @@ class Config():
         return super(Config, self).__new__(self)
 
     def __iter__(self):
-        for name in getattr(self, self.ATTR_SUBITEM):
+        for name in getattr(self, self.ATTR_ITEMS):
             yield name
 
     def __repr__(self):
@@ -32,14 +32,14 @@ class Config():
         return self.setitem(name, value, raw=None)
 
     def __delitem__(self, name):
-        if name not in getattr(self, self.ATTR_SUBITEM):
+        if name not in getattr(self, self.ATTR_ITEMS):
             raise errors.ItemError("'{}' object has no item '{}'".format(
                 self.__class__.__name__, name))
-        del getattr(self, self.ATTR_SUBITEM)[name]
+        del getattr(self, self.ATTR_ITEMS)[name]
 
     def __getattribute__(self, name):
         if (name in dir(Config) or name in Config.ATTR_NAMES
-                or name == Config.ATTR_SUBITEM):
+                or name == Config.ATTR_ITEMS):
             return super().__getattribute__(name)
         return super().__getattribute__("getitem")(name, raw=None)
 
@@ -81,7 +81,7 @@ class Config():
             return super().__getattribute__("setitem")(name, value, raw=None)
 
     def __delattr__(self, name):
-        if name == self.ATTR_SUBITEM:
+        if name == self.ATTR_ITEMS:
             super().__setattr__(name, {})
         elif name in self.ATTR_NAMES:
             setattr(self, name, None)
@@ -89,13 +89,14 @@ class Config():
             raise errors.AttributeError(
                 "Unexcepted attr name '{}'".format(name))
 
-    def isleaf(self):
-        return len(getattr(self, self.ATTR_SUBITEM)) == 0
+    @property
+    def _isleaf_(self):
+        return len(getattr(self, self.ATTR_ITEMS)) == 0
 
     def getitem(self, name, raw=None):
         if not name:
             if raw is None:
-                if not self.isleaf():
+                if not self._isleaf_:
                     raw = True
             if raw:
                 return self
@@ -109,10 +110,10 @@ class Config():
 
         name = names[0]
         names = names[1:]
-        if name not in getattr(self, self.ATTR_SUBITEM):
+        if name not in getattr(self, self.ATTR_ITEMS):
             raise errors.ItemError("'{}' object has no item '{}'".format(
                 self.__class__.__name__, name))
-        return getattr(self, self.ATTR_SUBITEM)[name].getitem(names, raw=raw)
+        return getattr(self, self.ATTR_ITEMS)[name].getitem(names, raw=raw)
 
     def setitem(self, name, value, raw=None):
         if name:
@@ -137,37 +138,33 @@ class Config():
             name = names[-1]
             if not isinstance(value, Config):
                 value = Config(value)
-            getattr(item, self.ATTR_SUBITEM)[name] = value
+            getattr(item, self.ATTR_ITEMS)[name] = value
 
-    def items(self, raw=None):
-        result = []
-        for name in self:
-            result.append((name, self.getitem(name, raw=raw)))
-        return result
-
-    def attrs(self):
-        result = []
+    @property
+    def _attrs_(self):
+        result = {}
         for name in self.ATTR_NAMES:
-            result.append((name, getattr(self, name)))
+            result[name] = getattr(self, name)
         return result
 
-    def values(self):
+    @property
+    def _values_(self):
         result = {}
         for name in self:
             item = self.getitem(name, raw=True)
-            if item.isleaf():
+            if item._isleaf_:
                 result[name] = item._value_
             else:
-                result[name] = item.values()
+                result[name] = item._values_
         return result
 
-    def schema(self, recursive=True):
+    @property
+    def _schema_(self):
         result = {}
-        for name, value in self.attrs():
-            result[name] = value
-        if recursive:
-            for name, value in self.items(raw=True):
-                result[name] = value.schema(recursive=recursive)
+        for name in self._attrs_:
+            result[name] = self._attrs_[name]
+        for name in self._items_:
+            result[name] = self._items_[name]._schema_
         return result
 
     def update_schema(self, schema={}, merge=True):
@@ -183,7 +180,7 @@ class Config():
         if not merge:
             for name in self.ATTR_NAMES:
                 setattr(self, name, None)
-            super().__setattr__(self.ATTR_SUBITEM, {})
+            super().__setattr__(self.ATTR_ITEMS, {})
         for name in sorted(schema.keys()):
             if name[0:1] == "_" and name[-1:] == "_":
                 if name not in Config.ATTR_NAMES:
@@ -231,7 +228,7 @@ class Config():
 
     def assert_values(self, schema=None, name=""):
         if not schema:
-            schema = self.schema(recursive=True)
+            schema = self._schema_
 
         self.assert_value(
             schema={
@@ -312,7 +309,7 @@ class Config():
             subcommands = {}
             subparsers = None
 
-        for attr_name, attr in self.items(raw=True):
+        for attr_name, attr in self._items_:
             if attr_name == command_attrname:
                 continue
             if attr_name in ignores:
@@ -478,7 +475,7 @@ class Config():
         values = self.values()
         values = {
             key: value
-            for key, value in values.items() if key not in ignores
+            for key, value in values._items_ if key not in ignores
         }
         if dumpname:
             values = {dumpname: values}

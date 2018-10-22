@@ -147,7 +147,7 @@ class TestConfig(unittest.TestCase):
         self.assertEqual(config.c, "123")
         self.assertRaises(errors.ItemError, getattr, config, "abc")
         config.__class__
-        self.assertIsInstance(config._subitems_, dict)
+        self.assertIsInstance(config._items_, dict)
 
         self.assertIs(config.__class__, Config)
 
@@ -176,9 +176,7 @@ class TestConfig(unittest.TestCase):
         self.assertEqual(config._value_, "456")
         self.assertEqual(config._min_, "500")
         self.assertEqual(config._max_, None)
-        self.assertRaises(errors.ItemError, setattr, config, "subitems", {
-            "a": 1
-        })
+        self.assertRaises(errors.ItemError, setattr, config, "items", {"a": 1})
         self.assertRaises(errors.AttributeError, setattr, config, "__dict__", {
             "a": 1
         })
@@ -204,15 +202,15 @@ class TestConfig(unittest.TestCase):
         self.assertEqual(config._type_, "int")
         self.assertEqual(config._value_, 123)
         self.assertEqual(config._min_, 56)
-        self.assertEqual(len(config._subitems_), 2)
+        self.assertEqual(len(config._items_), 2)
         delattr(config, "_type_")
         self.assertIs(config._type_, None)
         delattr(config, "_value_")
         self.assertIs(config._value_, None)
         delattr(config, "_min_")
         self.assertIs(config._min_, None)
-        delattr(config, "_subitems_")
-        self.assertEqual(len(config._subitems_), 0)
+        delattr(config, "_items_")
+        self.assertEqual(len(config._items_), 0)
 
     def test_attrs(self):
         config = Config({
@@ -223,12 +221,17 @@ class TestConfig(unittest.TestCase):
             "b": 34,
         })
 
-        attrs = sorted(config.attrs())
-        self.assertListEqual(
-            attrs,
-            [('_argoptions_', False), ('_help_', None), ('_max_', None),
-             ('_min_', 56), ('_required_', None), ('_type_', 'int'),
-             ('_value_', 123)],
+        self.assertDictEqual(
+            config._attrs_,
+            {
+                '_argoptions_': False,
+                '_help_': None,
+                '_max_': None,
+                '_min_': 56,
+                '_required_': None,
+                '_type_': 'int',
+                '_value_': 123,
+            },
         )
 
     def test_getitem(self):
@@ -369,28 +372,15 @@ class TestConfig(unittest.TestCase):
 
     def test_items(self):
         config = Config({"a": 12, "b": 34})
-        items = sorted(config.items(raw=False))
-        self.assertIsInstance(items, list)
-        self.assertIsInstance(items[0], tuple)
-        self.assertEqual(items[0][0], "a")
-        self.assertEqual(items[0][1], 12)
-        self.assertIsInstance(items[1], tuple)
-        self.assertEqual(items[1][0], "b")
-        self.assertEqual(items[1][1], 34)
-
-        items = sorted(config.items(raw=True))
-        self.assertIsInstance(items, list)
-        self.assertIsInstance(items[0], tuple)
-        self.assertEqual(items[0][0], "a")
-        self.assertEqual(items[0][1]._value_, 12)
-        self.assertIsInstance(items[1], tuple)
-        self.assertEqual(items[1][0], "b")
-        self.assertEqual(items[1][1]._value_, 34)
+        self.assertIsInstance(config._items_, dict)
+        self.assertEqual(len(config._items_), 2)
+        self.assertIsInstance(config._items_["a"], Config)
+        self.assertEqual(config._items_["a"]._value_, 12)
+        self.assertEqual(config._items_["b"]._value_, 34)
 
     def test_values(self):
         config = Config({"a": 12, "b": 34, "c": {"d": {"e": "hello"}}})
-        values = config.values()
-        self.assertDictEqual(values, {
+        self.assertDictEqual(config._values_, {
             "a": 12,
             "b": 34,
             "c": {
@@ -517,15 +507,8 @@ class TestConfig(unittest.TestCase):
             },
         }
         self.maxDiff = None
-        schema = config.schema()
+        schema = config._schema_
         self.assertDictEqual(schema, compare_result)
-        schema = config.schema(recursive=False)
-        self.assertDictEqual(
-            schema, {
-                name: value
-                for name, value in compare_result.items()
-                if name[0:1] == "_" and name[-1:] == "_"
-            })
 
     def test_update_schema(self):
         config = Config({"a": 1, "b": 2})
@@ -546,13 +529,13 @@ class TestConfig(unittest.TestCase):
         self.assertEqual(config.a.a, 1)
         self.assertEqual(config.getitem("b", raw=True)._type_, "str")
         self.assertEqual(config.b, "123")
-        self.assertEqual(len(config.items()), 2)
+        self.assertEqual(len(config._items_), 2)
 
         config.update_schema(None, merge=True)
         self.assertEqual(config.a.a, 1)
-        self.assertEqual(len(config.items()), 2)
+        self.assertEqual(len(config._items_), 2)
         config.update_schema(None, merge=False)
-        self.assertEqual(len(config.items()), 0)
+        self.assertEqual(len(config._items_), 0)
 
         config = Config({
             "a": 1,
@@ -574,12 +557,12 @@ class TestConfig(unittest.TestCase):
         config.update_schema("13", merge=True)
         self.assertEqual(config._type_, "str")
         self.assertEqual(config._value_, "13")
-        self.assertEqual(len(config._subitems_), 3)
+        self.assertEqual(len(config._items_), 3)
         self.assertEqual(config.c.b["required"], True)
         config.update_schema(12, merge=False)
         self.assertEqual(config._type_, "int")
         self.assertEqual(config._value_, 12)
-        self.assertEqual(len(config._subitems_), 0)
+        self.assertEqual(len(config._items_), 0)
 
         config = Config({
             "a": 1,
