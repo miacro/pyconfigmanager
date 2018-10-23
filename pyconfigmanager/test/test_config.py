@@ -337,11 +337,21 @@ class TestConfig(unittest.TestCase):
         self.assertEqual(config._items_["b"]._value_, 34)
 
     def test_values(self):
-        config = Config({"a": 12, "b": 34, "c": {"d": {"e": "hello"}}})
+        config = Config({
+            "a": 12,
+            "b": 34,
+            "c": {
+                "_value_": 12,
+                "d": {
+                    "e": "hello"
+                }
+            }
+        })
         self.assertDictEqual(config._values_, {
             "a": 12,
             "b": 34,
             "c": {
+                "_value_": 12,
                 "d": {
                     "e": "hello"
                 }
@@ -533,6 +543,7 @@ class TestConfig(unittest.TestCase):
             "a": 1,
             "b": 2,
             "c": {
+                "_value_": 12,
                 "a": 1,
                 "b": {
                     "_value_": "hello",
@@ -543,6 +554,7 @@ class TestConfig(unittest.TestCase):
         self.assertEqual(config.a, 1)
         self.assertEqual(config.b, 2)
         self.assertEqual(config["b"]._type_, "int")
+        self.assertEqual(config["c"]._value_, 12)
         self.assertEqual(config.c.b["required"]._value_, True)
         self.assertEqual(config.c.b._required_, None)
         self.assertEqual(config.c.b._type_, "str")

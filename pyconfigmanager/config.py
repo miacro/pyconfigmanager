@@ -155,6 +155,8 @@ class Config():
                 result[name] = item._value_
             else:
                 result[name] = item._values_
+                if item._value_ is not None:
+                    result[name]["_value_"] = item._value_
         return result
 
     @_values_.setter
