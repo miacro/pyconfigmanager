@@ -206,37 +206,6 @@ class Config():
                 getattr(self, self.ATTR_ITEMS)[name] = Config(schema[name])
             else:
                 self[name]._schema_ = schema[name]
-
-    def logging_values(self, schema=None, verbosity="INFO", name=""):
-        if not schema:
-            schema = self.schema(recursive=True)
-        elif not isinstance(schema, dict):
-            schema = {"_value_": None}
-        if "_value_" in schema:
-            tolog = False
-            if self.isleaf():
-                if schema["_value_"] or schema["_value_"] is None:
-                    tolog = True
-            else:
-                if schema["_value_"]:
-                    tolog = True
-            if tolog:
-                logging.log(
-                    get_logging_level(verbosity), "{}: {}".format(
-                        name, self._value_))
-        for item_name in sorted(schema.keys()):
-            if isattrname(item_name):
-                continue
-            if not schema[item_name]:
-                continue
-            if name:
-                show_name = "{}.{}".format(name, item_name)
-            else:
-                show_name = item_name
-            item = self[item_name]
-            item.logging_values(
-                schema=schema[item_name], verbosity=verbosity, name=show_name)
-
     def argument_options(self,
                          prefix="",
                          subcommands=(),

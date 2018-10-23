@@ -9,7 +9,7 @@ import tempfile
 
 
 class TestOperator(unittest.TestCase):
-    def test_assert_value(self):
+    def test_assert_values(self):
         config = Config({
             "a": 12,
             "b": {
@@ -18,22 +18,22 @@ class TestOperator(unittest.TestCase):
                 "_max_": 12
             }
         })
-        self.assertRaises(AssertionError, operator.assert_value, config)
-        self.assertRaises(AssertionError, operator.assert_value, config, {
+        self.assertRaises(AssertionError, operator.assert_values, config)
+        self.assertRaises(AssertionError, operator.assert_values, config, {
             "a": {
                 "b": {
                     "_max_": 12
                 }
             }
         })
-        self.assertRaises(AssertionError, operator.assert_value, config, {
+        self.assertRaises(AssertionError, operator.assert_values, config, {
             "a": {
                 "b": {
                     "_min_": 345
                 }
             }
         })
-        self.assertRaises(AssertionError, operator.assert_value, config, {
+        self.assertRaises(AssertionError, operator.assert_values, config, {
             "a": {
                 "b": {
                     "_type_": "str"
@@ -50,17 +50,17 @@ class TestOperator(unittest.TestCase):
                 }
             }
         })
-        self.assertRaises(AssertionError, operator.assert_value, config)
-        operator.assert_value(config.a.b["c"], schema={"_required_": False})
-        operator.assert_value(config, schema={"a": True})
-        self.assertRaises(AssertionError, operator.assert_value, config, {
+        self.assertRaises(AssertionError, operator.assert_values, config)
+        operator.assert_values(config.a.b["c"], schema={"_required_": False})
+        operator.assert_values(config, schema={"a": True})
+        self.assertRaises(AssertionError, operator.assert_values, config, {
             "a": True,
             "b": True
         })
-        operator.assert_value(config, schema={"a": {"b": True}})
+        operator.assert_values(config, schema={"a": {"b": True}})
         self.assertRaises(
             AssertionError,
-            operator.assert_value,
+            operator.assert_values,
             config,
             schema={
                 "a": {
@@ -71,11 +71,11 @@ class TestOperator(unittest.TestCase):
                     }
                 }
             })
-        operator.assert_value(config, schema={"a": {"b": 12}})
-        operator.assert_value(config, schema={"a": {"b": {"c": "haha"}}})
+        operator.assert_values(config, schema={"a": {"b": 12}})
+        operator.assert_values(config, schema={"a": {"b": {"c": "haha"}}})
         self.assertRaises(
             AssertionError,
-            operator.assert_value,
+            operator.assert_values,
             config,
             schema={
                 "a": {
@@ -98,7 +98,7 @@ class TestOperator(unittest.TestCase):
         })
         self.assertRaises(
             AssertionError,
-            operator.assert_value,
+            operator.assert_values,
             config,
             schema={
                 "a": {
@@ -111,7 +111,7 @@ class TestOperator(unittest.TestCase):
             })
         self.assertRaises(
             AssertionError,
-            operator.assert_value,
+            operator.assert_values,
             config,
             schema={
                 "a": {

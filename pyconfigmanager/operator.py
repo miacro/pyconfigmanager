@@ -6,6 +6,7 @@ import argparse
 import sys
 from . import errors
 from .config import Config
+from .config import isattrname
 
 
 def operator(func):
@@ -19,10 +20,7 @@ def operator(func):
 
 
 @operator
-def assert_value(config, schema=None, recursive=True, nameprefix=""):
-    def isattrname(name):
-        return len(name) > 2 and name[0:1] == "_" and name[-1:] == "_"
-
+def assert_values(config, schema=None, nameprefix=""):
     def assert_item(item, schema, nameprefix=""):
         if schema is None:
             checker = item
@@ -52,63 +50,62 @@ def assert_value(config, schema=None, recursive=True, nameprefix=""):
             assert value <= checker._max_, (
                 message + "'{}' required <= {}".format(value, checker._max_))
 
-    if not schema:
-        if recursive:
-            schema = config._schema_
-        else:
-            schema = config._attrs_
+    if schema is None:
+        schema = config._schema_
+    elif not isinstance(schema, dict):
+        schema = config._attrs_
     assert_item(config, schema=schema, nameprefix=nameprefix)
-    if not recursive:
-        return
     for item_name in schema:
         if isattrname(item_name):
             continue
         if not schema[item_name]:
             continue
         if nameprefix:
-            nameprefix = "{}.{}".format(nameprefix, item_name)
+            showname = "{}.{}".format(nameprefix, item_name)
+        else:
+            showname = item_name
         assert item_name in config, (
-            "'Config' object has no item '{}'".format(nameprefix))
+            "'Config' object has no item '{}'".format(showname))
         item = config[item_name]
         if isinstance(schema[item_name], dict):
-            assert_value(
-                item,
-                schema=schema[item_name],
-                recursive=recursive,
-                nameprefix=nameprefix)
+            assert_values(item, schema=schema[item_name], nameprefix=showname)
 
 
 @operator
-def logging_values(config, schema=None, verbosity="INFO", name=""):
-    attr_value = config.ATTR_INDICATOR + "value"
+def logging_values(config, schema=None, verbosity="INFO", nameprefix=""):
     if not schema:
-        schema = config.schema(recursive=True)
+        schema = config._schema_
     elif not isinstance(schema, dict):
-        schema = {attr_value: None}
-    if attr_value in schema:
-        tolog = False
-        if config.isleaf():
-            if schema[attr_value] or schema[attr_value] is None:
-                tolog = True
+        schema = {"_value_": schema}
+
+    tolog = False
+    if "_value_" in schema:
+        if schema["_value_"]:
+            tolog = True
+    else:
+        if config._isleaf_:
+            tolog = True
         else:
-            if schema[attr_value]:
+            if config._value_ is not None:
                 tolog = True
-        if tolog:
-            logging.log(
-                get_logging_level(verbosity), "{}: {}".format(
-                    name, config.getattr("value")))
+    message = "{}: {}".format(nameprefix, config._value_)
+    if tolog:
+        logging.log(get_logging_level(verbosity), message)
     for item_name in sorted(schema.keys()):
-        if item_name[0:1] == config.ATTR_INDICATOR:
+        if isattrname(item_name):
             continue
         if not schema[item_name]:
             continue
-        if name:
-            show_name = "{}.{}".format(name, item_name)
+        if nameprefix:
+            showname = "{}.{}".format(nameprefix, item_name)
         else:
-            show_name = item_name
-        item = config.getitem(item_name, raw=True)
-        item.logging_values(
-            schema=schema[item_name], verbosity=verbosity, name=show_name)
+            showname = item_name
+        item = config[item_name]
+        logging_values(
+            item,
+            schema=schema[item_name],
+            verbosity=verbosity,
+            nameprefix=showname)
 
 
 @operator
