@@ -207,64 +207,6 @@ class Config():
             else:
                 self[name]._schema_ = schema[name]
 
-    def assert_value(self, schema=None, name=""):
-        show_name = name
-        if schema is None:
-            checker = self
-        elif not isinstance(schema, Config):
-            checker = Config({
-                name: value
-                for name, value in schema.items() if isattrname(name)
-            })
-        else:
-            checker = schema
-
-        value = self._value_
-        check_type = checker._type_
-        check_min = checker._min_
-        check_max = checker._max_
-        if show_name:
-            message = "Item '{}': value ".format(show_name)
-        else:
-            message = "Item value "
-        if checker._required_:
-            assert value is not None, message + "required"
-        if check_type is not None:
-            assert isinstance(value, utils.locate_type(check_type)), (
-                message +
-                "'{}' not instance of '{}'".format(value, check_type))
-        if check_min is not None:
-            assert value >= check_min, (
-                message + "'{}' required >= {}".format(value, check_min))
-        if check_max is not None:
-            assert value <= check_max, (
-                message + "'{}' required <= {}".format(value, check_max))
-
-    def assert_values(self, schema=None, name=""):
-        if not schema:
-            schema = self._schema_
-
-        self.assert_value(
-            schema={
-                name: value
-                for name, value in schema.items() if isattrname(name)
-            },
-            name=name)
-        for item_name in schema:
-            if isattrname(item_name):
-                continue
-            if not schema[item_name]:
-                continue
-            if name:
-                show_name = "{}.{}".format(name, item_name)
-            else:
-                show_name = item_name
-            assert item_name in self, (
-                "'Config' object has no item '{}'".format(show_name))
-            item = self[item_name]
-            if isinstance(schema[item_name], dict):
-                item.assert_values(schema=schema[item_name], name=show_name)
-
     def logging_values(self, schema=None, verbosity="INFO", name=""):
         if not schema:
             schema = self.schema(recursive=True)

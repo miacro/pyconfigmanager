@@ -10,232 +10,72 @@ from .config import Config
 
 def operator(func):
     def operate(config, *args, **kwargs):
-        if isinstance(config, Config):
+        if not isinstance(config, Config):
             raise errors.TypeError("argument '{}' not instance of '{}'".format(
                 config, Config.__name__))
-        func(*args, **kwargs)
+        func(config, *args, **kwargs)
 
     return operate
 
 
 @operator
-def getitem(config, name, raw=None):
-    if not name:
-        if raw is None:
-            if not config.isleaf():
-                raw = True
-        if raw:
-            return config
+def assert_value(config, schema=None, recursive=True, nameprefix=""):
+    def isattrname(name):
+        return len(name) > 2 and name[0:1] == "_" and name[-1:] == "_"
+
+    def assert_item(item, schema, nameprefix=""):
+        if schema is None:
+            checker = item
+        elif not isinstance(schema, Config):
+            checker = Config({
+                name: value
+                for name, value in schema.items() if isattrname(name)
+            })
         else:
-            return config.getattr("value")
+            checker = schema
 
-    if not (isinstance(name, list) or isinstance(name, tuple)):
-        names = [name]
-    else:
-        names = name
-
-    name = names[0]
-    names = names[1:]
-    if name not in config.getattr(config.ATTR_SUBITEM):
-        raise errors.ItemError("'{}' object has no item '{}'".format(
-            config.__class__.__name__, name))
-    return config.getattr(config.ATTR_SUBITEM)[name].getitem(names, raw=raw)
-
-
-@operator
-def setitem(config, name, value, raw=None):
-    if name:
-        if not (isinstance(name, list) or isinstance(name, tuple)):
-            names = [name]
+        value = config._value_
+        if nameprefix:
+            message = "Item '{}': value ".format(nameprefix)
         else:
-            names = name
-    else:
-        names = []
+            message = "Item value "
+        if checker._required_:
+            assert value is not None, message + "required"
+        if checker._type_ is not None:
+            assert isinstance(value, utils.locate_type(checker._type_)), (
+                message +
+                "'{}' not instance of '{}'".format(value, checker._type_))
+        if checker._min_ is not None:
+            assert value >= checker._min_, (
+                message + "'{}' required >= {}".format(value, checker._min_))
+        if checker._max_ is not None:
+            assert value <= checker._max_, (
+                message + "'{}' required <= {}".format(value, checker._max_))
 
-    if not raw:
-        item = config.getitem(names, raw=True)
-        if isinstance(value, Config):
-            value = value.getattr("value")
-        return item.setattr("value", value)
-    else:
-        item = config.getitem(names[:-1], raw=True)
-        if not names:
-            raise errors.ItemError("Unexcepted item name '{}'".format(names))
-        name = names[-1]
-        if not isinstance(value, Config):
-            value = Config(value)
-        item.getattr(config.ATTR_SUBITEM)[name] = value
-
-
-@operator
-def getattr(config, name):
-    if name not in config.ATTR_NAMES + (config.ATTR_SUBITEM, ):
-        raise errors.AttributeError("Unexcepted attr name '{}'".format(name))
-    return super().__getattribute__(name)
-
-
-@operator
-def setattr(config, name, value):
-    if name not in config.ATTR_NAMES:
-        raise errors.AttributeError("Unexcepted attr name '{}'".format(name))
-
-    if name == "argoptions":
-        if isinstance(value, ArgumentOptions):
-            pass
-        elif isinstance(value, dict):
-            value = ArgumentOptions(**value)
-        else:
-            value = bool(value)
-    elif name == "type":
-        if value is not None:
-            if isinstance(value, type):
-                value = utils.typename(value)
-            else:
-                value = str(value)
-            if config.getattr("value") is not None:
-                super().__setattr__("value",
-                                    utils.convert_type(
-                                        config.getattr("value"), value))
-            if config.getattr("max") is not None:
-                super().__setattr__("max",
-                                    utils.convert_type(
-                                        config.getattr("max"), value))
-            if config.getattr("min") is not None:
-                super().__setattr__("min",
-                                    utils.convert_type(
-                                        config.getattr("min"), value))
-    elif name == "max" or name == "min" or name == "value":
-        if (config.getattr("type") is not None and value is not None):
-            value = utils.convert_type(value, config.getattr("type"))
-    return super().__setattr__(name, value)
-
-
-@operator
-def items(config, raw=None):
-    result = []
-    for name in config:
-        result.append((name, config.getitem(name, raw=raw)))
-    return result
-
-
-@operator
-def attrs(config):
-    result = []
-    for name in config.ATTR_NAMES:
-        result.append((name, config.getattr(name)))
-    return result
-
-
-@operator
-def values(config):
-    result = {}
-    for name in config:
-        item = config.getitem(name, raw=True)
-        if item.isleaf():
-            result[name] = item.getattr("value")
-        else:
-            result[name] = item.values()
-    return result
-
-
-@operator
-def schema(config, recursive=True):
-    result = {}
-    for name, value in config.attrs():
-        result[config.ATTR_INDICATOR + name] = value
-    if recursive:
-        for name, value in config.items(raw=True):
-            result[name] = value.schema(recursive=recursive)
-    return result
-
-
-@operator
-def update_schema(config, schema={}, merge=True):
-    def normalize_schema(schema):
-        attrtype = config.ATTR_INDICATOR + "type"
-        attrvalue = config.ATTR_INDICATOR + "value"
-        if not isinstance(schema, dict):
-            schema = {attrvalue: schema}
-        if ((attrvalue in schema) and (schema[attrvalue] is not None)):
-            if ((attrtype not in schema) or (schema[attrtype] is None)):
-                schema[attrtype] = utils.typename(type(schema[attrvalue]))
-        return schema
-
-    schema = normalize_schema(schema)
-    if not merge:
-        for name in config.ATTR_NAMES:
-            config.setattr(name, None)
-        super().__setattr__(config.ATTR_SUBITEM, {})
-    for name in sorted(schema.keys()):
-        if name[0] == config.ATTR_INDICATOR:
-            config.setattr(name[1:], schema[name])
-        elif name not in config:
-            config.setitem(name, Config(schema[name]), raw=True)
-        else:
-            config.getitem(name, raw=True).update_schema(schema[name])
-
-
-@operator
-def assert_value(config, schema=None, name=""):
-    show_name = name
-    if schema is None:
-        checker = config
-    elif not isinstance(schema, Config):
-        checker = Config({
-            name: value
-            for name, value in schema.items()
-            if name[0:1] == config.ATTR_INDICATOR
-        })
-    else:
-        checker = schema
-
-    value = config.getattr("value")
-    check_type = checker.getattr("type")
-    check_min = checker.getattr("min")
-    check_max = checker.getattr("max")
-    if show_name:
-        message = "Item '{}': value ".format(show_name)
-    else:
-        message = "Item value "
-    if checker.getattr("required"):
-        assert value is not None, message + "required"
-    if check_type is not None:
-        assert isinstance(value, utils.locate_type(check_type)), (
-            message + "'{}' not instance of '{}'".format(value, check_type))
-    if check_min is not None:
-        assert value >= check_min, (
-            message + "'{}' required >= {}".format(value, check_min))
-    if check_max is not None:
-        assert value <= check_max, (
-            message + "'{}' required <= {}".format(value, check_max))
-
-
-@operator
-def assert_values(config, schema=None, name=""):
     if not schema:
-        schema = config.schema(recursive=True)
-
-    config.assert_value(
-        schema={
-            name: value
-            for name, value in schema.items()
-            if name[0:1] == config.ATTR_INDICATOR
-        },
-        name=name)
+        if recursive:
+            schema = config._schema_
+        else:
+            schema = config._attrs_
+    assert_item(config, schema=schema, nameprefix=nameprefix)
+    if not recursive:
+        return
     for item_name in schema:
-        if item_name[0:1] == config.ATTR_INDICATOR:
+        if isattrname(item_name):
             continue
         if not schema[item_name]:
             continue
-        if name:
-            show_name = "{}.{}".format(name, item_name)
-        else:
-            show_name = item_name
+        if nameprefix:
+            nameprefix = "{}.{}".format(nameprefix, item_name)
         assert item_name in config, (
-            "'Config' object has no item '{}'".format(show_name))
-        item = config.getitem(item_name, raw=True)
+            "'Config' object has no item '{}'".format(nameprefix))
+        item = config[item_name]
         if isinstance(schema[item_name], dict):
-            item.assert_values(schema=schema[item_name], name=show_name)
+            assert_value(
+                item,
+                schema=schema[item_name],
+                recursive=recursive,
+                nameprefix=nameprefix)
 
 
 @operator
