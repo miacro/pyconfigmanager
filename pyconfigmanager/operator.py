@@ -7,6 +7,7 @@ import sys
 from . import errors
 from .config import Config
 from .config import isattrname
+from .utils import locate_type
 
 
 def operator(func):
@@ -14,7 +15,7 @@ def operator(func):
         if not isinstance(config, Config):
             raise errors.TypeError("argument '{}' not instance of '{}'".format(
                 config, Config.__name__))
-        func(config, *args, **kwargs)
+        return func(config, *args, **kwargs)
 
     return operate
 
@@ -109,9 +110,51 @@ def logging_values(config, schema=None, verbosity="INFO", nameprefix=""):
 
 
 @operator
-def argument_options(config, prefix="", subcommands=(),
-                     command_name="command"):
-    pass
+def argument_options(config):
+    options = ArgumentOptions(
+        type=config._type_, default=config._value_, help=config._help_ or " ")
+    options = vars(options)
+
+    if options["type"]:
+        if issubclass(locate_type(options["type"]), list):
+            options["nargs"] = "*"
+            options["type"] = None
+        elif issubclass(locate_type(options["type"]), bool):
+            options["type"] = str2bool
+
+    if isinstance(config._argoptions_, ArgumentOptions):
+        options.update({
+            key: value
+            for key, value in vars(config._argoptions_).items()
+            if value is not None
+        })
+
+    if options["action"]:
+        options["type"] = None
+        options["metavar"] = None
+        options["choices"] = None
+        options["nargs"] = None
+        options["const"] = None
+
+    if options["type"]:
+        if isinstance(options["type"], str):
+            options["type"] = locate_type(options["type"])
+    options = {
+        key: value
+        for key, value in options.items() if value is not None
+    }
+
+    results = {"--": options}
+    for name in config:
+        suboptions = argument_options(config[name])
+        for key, value in suboptions.items():
+            assert key[0:2] == "--"
+            if key != "--":
+                key = "--{}-{}".format(name, key[2:])
+            else:
+                key = "--{}".format(name)
+            results[key] = value
+    return results
 
 
 @operator
@@ -315,10 +358,22 @@ def dump_config(config,
         sys.exit(0)
 
 
-@operator
 def normalize_subcommands(subcommands):
     if isinstance(subcommands, dict):
         return subcommands
     elif isinstance(subcommands, list) or isinstance(subcommands, tuple):
         return {name: True for name in subcommands}
     return {}
+
+
+def str2bool(value):
+    return value.lower() in (
+        'true',
+        '1',
+        't',
+        'y',
+        'yes',
+        'yeah',
+        'yup',
+        'certainly',
+    )

@@ -119,6 +119,192 @@ class TestOperator(unittest.TestCase):
                 }
             })
 
+    def test_argument_options(self):
+        self.maxDiff = None
+        config = Config({"_value_": "12", "_type_": int, "_help_": "124"})
+        self.assertDictEqual(
+            operator.argument_options(config), {
+                "--": {
+                    "default": 12,
+                    "help": '124',
+                    "type": int
+                }
+            })
+        config = Config({
+            "_value_": "12",
+            "_type_": int,
+            "_help_": "124",
+            "_argoptions_": {
+                "type": "str",
+                "default": 12,
+                "help": "345",
+                "metavar": "123",
+                "action": None,
+                "nargs": "test2",
+                "const": "test3",
+                "choices": "test4",
+                "position": 12,
+                "short": "a",
+                "required": True,
+            }
+        })
+        self.assertDictEqual(
+            operator.argument_options(config), {
+                "--": {
+                    "type": str,
+                    "default": 12,
+                    "help": "345",
+                    "metavar": "123",
+                    "nargs": "test2",
+                    "const": "test3",
+                    "choices": "test4",
+                    "position": 12,
+                    "short": "a",
+                    "required": True
+                }
+            })
+        config = Config({
+            "_value_": "12",
+            "_type_": int,
+            "_help_": "124",
+            "_argoptions_": {
+                "type": "str",
+                "default": 12,
+                "help": "345",
+                "metavar": "123",
+                "action": "test",
+                "nargs": "test2",
+                "const": "test3",
+                "choices": "test4",
+                "position": 12,
+                "short": "a",
+                "required": True,
+            }
+        })
+        self.assertDictEqual(
+            operator.argument_options(config), {
+                "--": {
+                    "default": 12,
+                    "help": "345",
+                    "action": "test",
+                    "position": 12,
+                    "short": "a",
+                    "required": True
+                }
+            })
+
+        config = Config({
+            "_type_": "list",
+            "_value_": [1, 2, 3],
+            "_argoptions_": {
+                "default": "123"
+            }
+        })
+        self.assertDictEqual(
+            operator.argument_options(config), {
+                "--": {
+                    "nargs": "*",
+                    "default": "123",
+                    "help": " "
+                }
+            })
+        config = Config({
+            "_type_": "list",
+            "_value_": [1, 2, 3],
+            "_argoptions_": {
+                "type": "str",
+                "nargs": "345"
+            }
+        })
+        self.assertDictEqual(
+            operator.argument_options(config), {
+                "--": {
+                    "nargs": "345",
+                    "default": [1, 2, 3],
+                    "help": " ",
+                    "type": str,
+                    "nargs": "345",
+                }
+            })
+        config = Config({"_type_": "bool"})
+        self.assertDictEqual(
+            operator.argument_options(config), {
+                "--": {
+                    "type": operator.str2bool,
+                    "help": " "
+                }
+            })
+
+        config = Config({
+            "a": "12",
+            "b": 34,
+            "_type_": "bool",
+            "_value_": "True"
+        })
+        self.assertDictEqual(
+            operator.argument_options(config), {
+                "--": {
+                    "type": operator.str2bool,
+                    "help": " ",
+                    "default": True
+                },
+                "--a": {
+                    "type": str,
+                    "default": "12",
+                    "help": " "
+                },
+                "--b": {
+                    "type": int,
+                    "default": 34,
+                    "help": " "
+                },
+            })
+        config = Config({
+            "a": {
+                "_value_": "123",
+                "c": False
+            },
+            "b": {
+                "_value_": 567,
+                "d": {
+                    "_value_": 456,
+                    "_argoptions_": {
+                        "type": "str"
+                    }
+                }
+            },
+            "_type_": "bool",
+            "_value_": "True"
+        })
+        self.assertDictEqual(
+            operator.argument_options(config), {
+                "--": {
+                    "type": operator.str2bool,
+                    "help": " ",
+                    "default": True
+                },
+                "--a": {
+                    "type": str,
+                    "default": "123",
+                    "help": " "
+                },
+                "--a-c": {
+                    "type": operator.str2bool,
+                    "default": False,
+                    "help": " "
+                },
+                "--b": {
+                    "type": int,
+                    "default": 567,
+                    "help": " "
+                },
+                "--b-d": {
+                    "type": str,
+                    "default": 456,
+                    "help": " "
+                }
+            })
+
 
 """
     def test_update_value_by_argument(self):
