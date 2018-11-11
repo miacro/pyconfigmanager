@@ -305,6 +305,43 @@ class TestOperator(unittest.TestCase):
                 }
             })
 
+    def test_update_value_by_argument(self):
+        config = Config({"a": 12, "b": 13, "c": {"d": {"e": 45}}})
+        operator.update_value_by_argument(
+            config, argname="a", value=34, ignore_not_found=False)
+        self.assertEqual(config.a, 34)
+        operator.update_value_by_argument(
+            config, argname="b", value="56", ignore_not_found=False)
+        self.assertEqual(config.b, 56)
+        operator.update_value_by_argument(
+            config, argname="c_d_e", value=23454, ignore_not_found=False)
+        self.assertEqual(config.c.d.e, 23454)
+        self.assertRaises(
+            errors.AttributeError,
+            operator.update_value_by_argument,
+            config,
+            argname="c_d_g",
+            value=12,
+            ignore_not_found=False)
+        operator.update_value_by_argument(
+            config, argname="c_d", value=12, ignore_not_found=True)
+        self.assertEqual(config.c.d._value_, 12)
+        self.assertEqual(config.c.d.e, 23454)
+        operator.update_value_by_argument(
+            config, argname=["a"], value=34, ignore_not_found=False)
+        self.assertEqual(config.a, 34)
+        operator.update_value_by_argument(
+            config, argname=["c", "d", "e"], value=67, ignore_not_found=False)
+        self.assertEqual(config.c.d.e, 67)
+
+        config = Config({"a": {"b": 1}, "a_b": 3})
+        operator.update_value_by_argument(
+            config, argname="a_b", value=12, ignore_not_found=False)
+        self.assertEqual(config.a.b, 1)
+        self.assertEqual(config.a_b, 12)
+        operator.update_value_by_argument(config, argname="a", value="23")
+        self.assertEqual(config.a._value_, "23")
+
     def test_dump_config(self):
         with tempfile.NamedTemporaryFile("wt") as temp_file:
             pass
@@ -372,38 +409,6 @@ class TestOperator(unittest.TestCase):
 
 
 """
-    def test_update_value_by_argument(self):
-        config = Config({"a": 12, "b": 13, "c": {"d": {"e": 45}}})
-        config.update_value_by_argument(
-            argname="a", value=34, ignore_not_found=False)
-        self.assertEqual(config.a, 34)
-        config.update_value_by_argument(
-            argname="b", value="56", ignore_not_found=False)
-        self.assertEqual(config.b, 56)
-        config.update_value_by_argument(
-            argname="c_d_e", value=23454, ignore_not_found=False)
-        self.assertEqual(config.c.d.e, 23454)
-        self.assertRaises(
-            AttributeError,
-            config.update_value_by_argument,
-            argname="c_d",
-            value=12,
-            ignore_not_found=False)
-        config.update_value_by_argument(
-            argname="c_d", value=12, ignore_not_found=True)
-        self.assertEqual(config.c.d.e, 23454)
-        config.update_value_by_argument(
-            argname=["a"], value=34, ignore_not_found=False)
-        self.assertEqual(config.a, 34)
-        config.update_value_by_argument(
-            argname=["c", "d", "e"], value=67, ignore_not_found=False)
-        self.assertEqual(config.c.d.e, 67)
-
-        config = Config({"a": {"b": 1}, "a_b": 3})
-        config.update_value_by_argument(
-            argname="a_b", value=12, ignore_not_found=False)
-        self.assertEqual(config.a.b, 1)
-        self.assertEqual(config.a_b, 12)
 
     def test_update_values_by_arguments(self):
         config = Config({"a": 12, "b": 13, "c": {"d": {"e": 45}}})

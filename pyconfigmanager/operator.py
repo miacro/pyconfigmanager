@@ -158,6 +158,39 @@ def argument_options(config):
 
 
 @operator
+def update_value_by_argument(config, argname, value, ignore_not_found=True):
+    if isinstance(argname, str):
+        names = argname.split("_")
+    else:
+        names = argname
+    names = [name for name in names]
+    if not names:
+        config._value_ = value
+        return
+    else:
+        test_name = ""
+        match_name = None
+        match_index = 0
+        for index, item in enumerate(names):
+            test_name = "{}_{}".format(test_name, item) if test_name else item
+            if test_name in config:
+                match_name = test_name
+                match_index = index
+
+        if match_name:
+            attr = config[match_name]
+            update_value_by_argument(
+                attr,
+                names[match_index + 1:],
+                value,
+                ignore_not_found=ignore_not_found)
+            return
+    if not ignore_not_found:
+        raise errors.AttributeError(
+            "attr not found by argname '{}'".format(argname))
+
+
+@operator
 def argument_parser(
         config,
         parser=None,
@@ -213,40 +246,6 @@ def argument_parser(
             parser.add_argument(
                 "--" + arg_name, dest=arg_name.replace("-", "_"), **options)
     return parser
-
-
-@operator
-def update_value_by_argument(config, argname, value, ignore_not_found=True):
-    if isinstance(argname, str):
-        names = argname.split("_")
-    else:
-        names = argname
-    names = [name for name in names]
-    if len(names) > 0:
-        test_name = ""
-        match_name = None
-        match_index = 0
-        for index, item in enumerate(names):
-            test_name = "{}_{}".format(test_name, item) if test_name else item
-            if test_name in config:
-                match_name = test_name
-                match_index = index
-
-        if match_name:
-            attr = config.getattr(match_name, raw=True)
-            if isinstance(attr, Options):
-                if match_index == len(names) - 1:
-                    config.setattr(match_name, value)
-                    return
-            elif isinstance(attr, Config):
-                if match_index < len(names) - 1:
-                    attr.update_value_by_argument(
-                        names[match_index + 1:],
-                        value,
-                        ignore_not_found=ignore_not_found)
-                    return
-    if not ignore_not_found:
-        raise AttributeError("attr not found by argname '{}'".format(argname))
 
 
 @operator
