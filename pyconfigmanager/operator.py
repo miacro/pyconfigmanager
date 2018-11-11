@@ -321,20 +321,6 @@ def update_values_by_argument_parser(config,
 
 
 @operator
-def update_values(config, values):
-    for name in values:
-        attr = config.getattr(name, raw=True)
-        if isinstance(attr, Config):
-            if not isinstance(values[name], dict):
-                raise ValueError(
-                    "'values[{}]' == '{}' is not instance of 'dict'".format(
-                        name, values[name]))
-            attr.update_values(values[name])
-        elif isinstance(attr, Options):
-            config.setattr(name, values[name], raw=False)
-
-
-@operator
 def dump_config(config,
                 filename="",
                 filename_config="config.dump",
@@ -343,10 +329,10 @@ def dump_config(config,
                 dumpname=""):
     if not filename and filename_config:
         filename_config = list(filter(str, filename_config.split(".")))
-        filename = config.getattr(filename_config, raw=False)
+        filename = config[filename_config]._value_
     if not filename:
         raise ValueError("no filename specified")
-    values = config.values()
+    values = config._values_
     values = {
         key: value
         for key, value in values.items() if key not in ignores

@@ -305,6 +305,71 @@ class TestOperator(unittest.TestCase):
                 }
             })
 
+    def test_dump_config(self):
+        with tempfile.NamedTemporaryFile("wt") as temp_file:
+            pass
+        jsonfile = "{}.json".format(temp_file.name)
+        yamlfile = "{}.yaml".format(temp_file.name)
+        config = Config({
+            "a": 1,
+            "b": 2,
+            "c": {
+                "d": "123",
+                "f": 34
+            },
+            "config": {
+                "file": ""
+            },
+        })
+        self.assertRaises(
+            ValueError,
+            operator.dump_config,
+            config,
+            filename="",
+            filename_config="config.file",
+            exit=False)
+        operator.dump_config(
+            config, filename=jsonfile, exit=False, dumpname="test")
+        result = [item for item in utils.load_json(filenames=jsonfile)]
+        self.assertListEqual(result, [{
+            "test": {
+                "a": 1,
+                "b": 2,
+                "c": {
+                    "d": "123",
+                    "f": 34
+                },
+            }
+        }])
+        operator.dump_config(
+            config, filename=yamlfile, exit=False, dumpname="")
+        result = [item for item in utils.load_yaml(filenames=yamlfile)]
+        self.assertListEqual(result, [{
+            "a": 1,
+            "b": 2,
+            "c": {
+                "d": "123",
+                "f": 34
+            },
+        }])
+
+        config.config.file = yamlfile
+        operator.dump_config(
+            config, filename_config="config.file", exit=False, dumpname="12")
+        result = [item for item in utils.load_yaml(filenames=yamlfile)]
+        self.assertListEqual(result, [{
+            "12": {
+                "a": 1,
+                "b": 2,
+                "c": {
+                    "d": "123",
+                    "f": 34
+                },
+            }
+        }])
+        os.remove(jsonfile)
+        os.remove(yamlfile)
+
 
 """
     def test_update_value_by_argument(self):
@@ -552,68 +617,6 @@ class TestOperator(unittest.TestCase):
                 "subcommand": "b",
                 "command": "",
             })
-
-    def test_dump_config(self):
-        with tempfile.NamedTemporaryFile("wt") as temp_file:
-            pass
-        jsonfile = "{}.json".format(temp_file.name)
-        yamlfile = "{}.yaml".format(temp_file.name)
-        config = Config({
-            "a": 1,
-            "b": 2,
-            "c": {
-                "d": "123",
-                "f": 34
-            },
-            "config": {
-                "file": ""
-            },
-        })
-        self.assertRaises(
-            ValueError,
-            config.dump_config,
-            filename="",
-            filename_config="config.file",
-            exit=False)
-        config.dump_config(filename=jsonfile, exit=False, dumpname="test")
-        result = [item for item in utils.load_json(filenames=jsonfile)]
-        self.assertListEqual(result, [{
-            "test": {
-                "a": 1,
-                "b": 2,
-                "c": {
-                    "d": "123",
-                    "f": 34
-                },
-            }
-        }])
-        config.dump_config(filename=yamlfile, exit=False, dumpname="")
-        result = [item for item in utils.load_yaml(filenames=yamlfile)]
-        self.assertListEqual(result, [{
-            "a": 1,
-            "b": 2,
-            "c": {
-                "d": "123",
-                "f": 34
-            },
-        }])
-
-        config.config.file = yamlfile
-        config.dump_config(
-            filename_config="config.file", exit=False, dumpname="12")
-        result = [item for item in utils.load_yaml(filenames=yamlfile)]
-        self.assertListEqual(result, [{
-            "12": {
-                "a": 1,
-                "b": 2,
-                "c": {
-                    "d": "123",
-                    "f": 34
-                },
-            }
-        }])
-        os.remove(jsonfile)
-        os.remove(yamlfile)
 
     def test_update_values_by_argument_parser(self):
         filedir = os.path.join(
