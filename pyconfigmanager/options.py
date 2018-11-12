@@ -37,6 +37,7 @@ class ArgumentOptions(BasicOptions):
             "action",
             "position",
             "short",
+            "command",
         ], **kwargs)
 
 

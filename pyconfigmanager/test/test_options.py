@@ -53,3 +53,4 @@ class TestArgumentOptions(unittest.TestCase):
         self.assertTrue(hasattr(options, "type"))
         self.assertTrue(hasattr(options, "metavar"))
         self.assertTrue(hasattr(options, "dest"))
+        self.assertTrue(hasattr(options, "command"))

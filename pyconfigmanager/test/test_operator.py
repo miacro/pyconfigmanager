@@ -179,6 +179,7 @@ class TestOperator(unittest.TestCase):
                 "position": 12,
                 "short": "a",
                 "required": True,
+                "command": True,
             }
         })
         self.assertDictEqual(
@@ -189,7 +190,8 @@ class TestOperator(unittest.TestCase):
                     "action": "test",
                     "position": 12,
                     "short": "a",
-                    "required": True
+                    "required": True,
+                    "command": True,
                 }
             })
 
