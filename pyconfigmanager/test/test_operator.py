@@ -307,6 +307,127 @@ class TestOperator(unittest.TestCase):
                 }
             })
 
+        config = Config({
+            "a": {
+                "_value_": "123",
+                "c": False
+            },
+            "b": {
+                "_value_": 567,
+                "_argoptions_": {
+                    "command": True,
+                    "default": "345"
+                },
+                "d": {
+                    "_value_": 456,
+                    "_argoptions_": {
+                        "type": "str"
+                    },
+                    "c": {
+                        "_argoptions_": {
+                            "command": True
+                        },
+                        "d": 12
+                    }
+                }
+            },
+            "_type_": "bool",
+            "_value_": "True"
+        })
+        self.assertDictEqual(
+            operator.argument_options(config), {
+                "--": {
+                    "type": operator.str2bool,
+                    "help": " ",
+                    "default": True
+                },
+                "--a": {
+                    "type": str,
+                    "default": "123",
+                    "help": " "
+                },
+                "--a-c": {
+                    "type": operator.str2bool,
+                    "default": False,
+                    "help": " "
+                },
+                "b": {
+                    "--": {
+                        "type": int,
+                        "default": "345",
+                        "help": " ",
+                        "command": True
+                    },
+                    "--d": {
+                        "type": str,
+                        "default": 456,
+                        "help": " ",
+                    },
+                    "c": {
+                        "--": {
+                            "command": True,
+                            "help": " ",
+                        },
+                        "--d": {
+                            "type": int,
+                            "default": 12,
+                            "help": " "
+                        }
+                    }
+                },
+            })
+        config = Config({
+            "b": {
+                "_value_": 567,
+                "_argoptions_": {
+                    "command": "alias",
+                    "default": "345"
+                },
+                "d": {
+                    "_value_": 456,
+                    "_argoptions_": {
+                        "type": "str"
+                    },
+                    "c": {
+                        "_argoptions_": {
+                            "command": True
+                        },
+                        "d": 12
+                    }
+                }
+            },
+        })
+        self.assertDictEqual(
+            operator.argument_options(config), {
+                "--": {
+                    "help": " "
+                },
+                "alias": {
+                    "--": {
+                        "type": int,
+                        "default": "345",
+                        "help": " ",
+                        "command": "alias"
+                    },
+                    "--d": {
+                        "type": str,
+                        "default": 456,
+                        "help": " ",
+                    },
+                    "c": {
+                        "--": {
+                            "command": True,
+                            "help": " ",
+                        },
+                        "--d": {
+                            "type": int,
+                            "default": 12,
+                            "help": " "
+                        }
+                    }
+                },
+            })
+
     def test_update_value_by_argument(self):
         config = Config({"a": 12, "b": 13, "c": {"d": {"e": 45}}})
         operator.update_value_by_argument(

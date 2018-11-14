@@ -147,9 +147,16 @@ def argument_options(config):
     results = {"--": options}
     for name in config:
         suboptions = argument_options(config[name])
+        if (isinstance(config[name]._argoptions_, ArgumentOptions)
+                and config[name]._argoptions_.command):
+            if isinstance(config[name]._argoptions_.command, str):
+                name = config[name]._argoptions_.command
+            results[name] = suboptions
+            continue
         for key, value in suboptions.items():
-            assert key[0:2] == "--"
-            if key != "--":
+            if key[0:2] != "--":
+                pass
+            elif key != "--":
                 key = "--{}-{}".format(name, key[2:])
             else:
                 key = "--{}".format(name)
